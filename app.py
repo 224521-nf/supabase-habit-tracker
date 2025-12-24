@@ -250,7 +250,7 @@ def render_settings(user_id):
     st.write("")
     
     # ステップ1: 習慣の内容
-    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
+    st.markdown("###  ステップ1: 習慣の内容を決める")
     
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
