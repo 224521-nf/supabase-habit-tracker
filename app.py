@@ -15,23 +15,48 @@ from habit_tracker import HabitTracker
 # LINE通知関数
 # ------------------------------
 
-def send_line_notification(supabase: Client, message: str, user_id: str = None):
-    """Supabase Edge FunctionでLINE通知を送信"""
+def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
+    """ユーザーにLINE通知を送信"""
     try:
+        # LINE User IDを取得
+        result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
+        
+        if not result.data:
+            # 設定がない場合はスキップ
+            return True
+        
+        settings = result.data[0]
+        
+        if not settings.get("notification_enabled", False):
+            # 通知が無効の場合はスキップ
+            return True
+        
+        line_user_id = settings.get("line_user_id")
+        if not line_user_id:
+            return True
+        
+        # 修正: invoke_optionsを使う
         response = supabase.functions.invoke(
             'send-line-notifications',
-            {
+            invoke_options={
                 'body': {
                     'message': message,
-                    'userId': user_id  # 必要に応じて
+                    'userId': line_user_id
                 }
             }
         )
+        
+        # レスポンスの確認
+        if hasattr(response, 'error') and response.error:
+            st.error(f"LINE通知エラー: {response.error}")
+            return False
+            
         return True
+    
     except Exception as e:
-        st.error(f"LINE通知の送信に失敗しました: {e}")
+        print(f"LINE通知エラー: {e}")
+        st.error(f"エラー: {e}")
         return False
- 
 # ------------------------------
 # Streamlit 設定
 # ------------------------------
