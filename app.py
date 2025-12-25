@@ -58,7 +58,7 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
         print(f"LINE通知エラー: {e}")
         st.error(f"エラー: {e}")
         return False
-    
+
 # ------------------------------
 # LINE設定UI
 # ------------------------------
@@ -168,7 +168,8 @@ def render_line_settings(user_id, supabase):
                     time.sleep(1)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"保存エラー: {e}") 
+                    st.error(f"保存エラー: {e}")
+ 
 # ------------------------------
 # Streamlit 設定
 # ------------------------------
@@ -351,7 +352,7 @@ def render_progress_chart(logs, max_days=30):
  
     plt.tight_layout()
     st.pyplot(fig)
- 
+
 # ------------------------------
 # Pages
 # ------------------------------
@@ -365,17 +366,9 @@ def render_settings(user_id):
     
     st.write("")
     st.write("")
-    
-    # LINE通知設定
-    with st.expander("🔔 LINE通知設定", expanded=False):
-        render_line_settings(user_id, supabase)
-    
-    st.write("")
-    st.markdown("---")
-    st.write("")
-    
+      
     # ステップ1: 習慣の内容
-    st.markdown("###  ステップ1: 習慣の内容を決める")
+    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
     
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
@@ -769,6 +762,11 @@ def main():
         
         st.sidebar.markdown("---")
         
+        st.sidebar.markdown("### 🔔 LINE通知")
+        with st.sidebar.expander("設定 / 変更", expanded=False):
+            render_line_settings(user_id, supabase)
+
+        st.sidebar.markdown("---")
         # LINE通知テスト（デバッグ用）
         with st.sidebar.expander("🔔 LINE通知テスト", expanded=False):
             if st.button("テスト通知を送信", use_container_width=True):
