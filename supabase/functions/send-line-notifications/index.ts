@@ -1,16 +1,18 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 serve(async () => {
-  // Supabase の環境変数から取得
-  const LINE_ACCESS_TOKEN = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
+  console.log("cron triggered");
+
+  const LINE_ACCESS_TOKEN = Deno.env.get("LINE_ACCESS_TOKEN");
   const LINE_USER_ID = Deno.env.get("LINE_USER_ID");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!LINE_ACCESS_TOKEN || !LINE_USER_ID) {
     return new Response("Missing LINE env vars", { status: 500 });
   }
 
-  // LINE Push API
-  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+  // 今は固定メッセージ（cron動作確認用）
+  await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -21,16 +23,11 @@ serve(async () => {
       messages: [
         {
           type: "text",
-          text: "習慣の時間です ⏰（テスト通知）",
+          text: "cron からの自動通知です ⏰",
         },
       ],
     }),
   });
 
-  return new Response(
-    JSON.stringify({ success: res.ok }),
-    {
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  return new Response("ok");
 });

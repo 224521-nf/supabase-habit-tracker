@@ -1,6 +1,7 @@
 import datetime
 import random
 import statistics
+import time
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,27 +16,164 @@ from habit_tracker import HabitTracker
 # LINE通知関数
 # ------------------------------
 
-def send_line_notification(supabase: Client, message: str, user_id: str = None):
-    """Supabase Edge FunctionでLINE通知を送信"""
+def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
+    """ユーザーにLINE通知を送信"""
     try:
+        # LINE User IDを取得
+        result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
+        
+        if not result.data:
+            # 設定がない場合はスキップ
+            return True
+        
+        settings = result.data[0]
+        
+        if not settings.get("notification_enabled", False):
+            # 通知が無効の場合はスキップ
+            return True
+        
+        line_user_id = settings.get("line_user_id")
+        if not line_user_id:
+            return True
+        
+        # 修正: invoke_optionsを使う
         response = supabase.functions.invoke(
             'send-line-notifications',
-            {
+            invoke_options={
                 'body': {
                     'message': message,
-                    'userId': user_id  # 必要に応じて
+                    'userId': line_user_id
                 }
             }
         )
+        
+        # レスポンスの確認
+        if hasattr(response, 'error') and response.error:
+            st.error(f"LINE通知エラー: {response.error}")
+            return False
+            
         return True
+    
     except Exception as e:
-        st.error(f"LINE通知の送信に失敗しました: {e}")
+        print(f"LINE通知エラー: {e}")
+        st.error(f"エラー: {e}")
         return False
+
+# ------------------------------
+# LINE設定UI
+# ------------------------------
+
+def render_line_settings(user_id, supabase):
+    """LINE通知設定UI"""
+    st.markdown("### 🔔 LINE通知設定")
+    
+    # 現在の設定を取得
+    try:
+        result = supabase.table("user_line_settings").select("*").eq("user_id", user_id).execute()
+        current_settings = result.data[0] if result.data else None
+    except:
+        current_settings = None
+    
+    if current_settings and current_settings.get("line_user_id"):
+        # 既に設定済み
+        st.success("✅ LINE通知が設定されています")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**User ID:** {current_settings['line_user_id'][:10]}...")
+        with col2:
+            enabled = st.toggle(
+                "通知を有効にする",
+                value=current_settings.get("notification_enabled", True),
+                key="notification_toggle"
+            )
+            
+            if enabled != current_settings.get("notification_enabled", True):
+                try:
+                    supabase.table("user_line_settings").update({
+                        "notification_enabled": enabled
+                    }).eq("user_id", user_id).execute()
+                    st.success("設定を更新しました")
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"更新エラー: {e}")
+        
+        with st.expander("設定を変更する"):
+            new_line_id = st.text_input(
+                "新しいLINE User ID", 
+                placeholder="Uから始まる33文字",
+                help="LINE User IDを変更する場合のみ入力"
+            )
+            
+            if st.button("更新", use_container_width=True):
+                if new_line_id and new_line_id.startswith("U") and len(new_line_id) == 33:
+                    try:
+                        supabase.table("user_line_settings").update({
+                            "line_user_id": new_line_id
+                        }).eq("user_id", user_id).execute()
+                        st.success("LINE User IDを更新しました")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"更新エラー: {e}")
+                else:
+                    st.error("正しいLINE User IDを入力してください")
+    else:
+        # 未設定
+        st.warning("⚠️ LINE通知が設定されていません")
+        st.info("習慣の時間になったら、LINEで通知を受け取れます")
+        
+        with st.expander("📖 LINE User IDの取得方法", expanded=True):
+            st.markdown("""
+            **LINE User IDを取得する方法:**
+            
+            1. LINE Developersコンソールにログイン
+            2. あなたのMessaging APIチャンネルを選択
+            3. Basic settings → Your user ID で確認
+            
+            **形式:** `U` で始まる33文字の英数字
+            
+            例: `U1234567890abcdef1234567890abcd`
+            """)
+        
+        line_user_id = st.text_input(
+            "LINE User ID", 
+            placeholder="例: Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        )
+        
+        if st.button("保存", use_container_width=True, type="primary"):
+            if not line_user_id:
+                st.error("LINE User IDを入力してください")
+            elif not line_user_id.startswith("U") or len(line_user_id) != 33:
+                st.error("正しい形式のLINE User IDを入力してください（Uで始まる33文字）")
+            else:
+                try:
+                    # user_line_settingsに保存
+                    supabase.table("user_line_settings").upsert({
+                        "user_id": user_id,
+                        "line_user_id": line_user_id,
+                        "notification_enabled": True
+                    }, on_conflict="user_id").execute()
+                    
+                    st.success("LINE通知を設定しました！")
+                    
+                    # テスト通知を送信
+                    send_line_notification_to_user(
+                        supabase,
+                        "🎉 LINE通知の設定が完了しました！\n\nこれからアプリからの通知を受け取れます。",
+                        user_id
+                    )
+                    
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"保存エラー: {e}")
  
 # ------------------------------
 # Streamlit 設定
 # ------------------------------
- 
+
 st.set_page_config(
     page_title="習慣化支援Webアプリ", 
     layout="wide",
@@ -77,7 +215,7 @@ st.markdown("""
 # ------------------------------
 # Supabase 初期化
 # ------------------------------
- 
+
 try:
     supabase: Client = create_client(
         st.secrets["SUPABASE_URL"],
@@ -97,7 +235,7 @@ tracker = HabitTracker(dm)
 # ------------------------------
 # Auth UI
 # ------------------------------
- 
+
 def render_login():
     # 中央寄せのレイアウト
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -197,11 +335,16 @@ def render_progress_chart(logs, max_days=30):
             linewidth=2.5, markersize=8)
    
     ax.set_ylim(-1, 24)
+    ax.set_xlim(1, 30)
+    
     ax.set_yticks(range(0, 24, 2))
-    ax.set_ylabel("達成時間 (時)", fontsize=12, fontweight='bold')
-    ax.set_xlabel("達成回数", fontsize=12, fontweight='bold')
-    ax.grid(True, linestyle='--', alpha=0.3)
-    ax.set_title("習慣達成時間の推移", fontsize=14, fontweight='bold', pad=20)
+    ax.set_xticks(range(1, 31))
+    
+    ax.set_ylabel("click_hour", fontsize=12, fontweight='bold')
+    ax.set_xlabel("click_count", fontsize=12, fontweight='bold')
+    
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.set_title("Achievement time per click", fontsize=14, fontweight='bold', pad=20)
     
     # 背景色を設定
     ax.set_facecolor('#fafafa')
@@ -222,6 +365,14 @@ def render_settings(user_id):
     st.markdown("<p style='text-align: center; color: #666; font-size: 1.1rem;'>30日間、一つの習慣に集中して人生を変えましょう</p>", unsafe_allow_html=True)
     
     st.write("")
+    st.write("")
+    
+    # LINE通知設定
+    with st.expander("🔔 LINE通知設定", expanded=False):
+        render_line_settings(user_id, supabase)
+    
+    st.write("")
+    st.markdown("---")
     st.write("")
     
     # ステップ1: 習慣の内容
@@ -324,13 +475,13 @@ def render_settings(user_id):
                         st.success("✅ 習慣を設定しました！さあ、始めましょう！")
                         
                         # LINE通知を送信
-                        send_line_notification(
+                        send_line_notification_to_user(
                             supabase,
-                            f"🎯 新しい習慣をスタート！\n「{name}」\n目標時刻: {time_input.strftime('%H:%M')}\n\n30日間頑張りましょう！"
+                            f"🎯 新しい習慣をスタート！\n「{name}」\n目標時刻: {time_input.strftime('%H:%M')}\n\n30日間頑張りましょう！",
+                            user_id
                         )
                         
                         st.session_state.page = "challenge"
-                        import time
                         time.sleep(1)
                         st.rerun()
                     else:
@@ -369,15 +520,15 @@ def render_challenge(user_id):
             st.info("💪 大丈夫！また今日から始めましょう！")
             
             # LINE通知を送信
-            send_line_notification(
+            send_line_notification_to_user(
                 supabase,
-                f"⚠️ 習慣がリセットされました\n「{habit['name']}」\n\n{MISS_DAYS_THRESHOLD}日間記録がなかったため、連続日数がリセットされました。\n\nまた今日から頑張りましょう！💪"
+                f"⚠️ 習慣がリセットされました\n「{habit['name']}」\n\n{MISS_DAYS_THRESHOLD}日間記録がなかったため、連続日数がリセットされました。\n\nまた今日から頑張りましょう！💪",
+                user_id
             )
             
             tracker.reset_logs(user_id)
             count = 0
             last_date = None
-            import time
             time.sleep(2)
             st.rerun()
     
@@ -420,13 +571,13 @@ def render_challenge(user_id):
     
     # マイルストーンメッセージ
     if st.session_state.milestone_message:
-        icon, title, message = st.session_state.milestone_message
+        icon, title, msg = st.session_state.milestone_message
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 15px; color: white; margin: 2rem 0;'>
             <div style='font-size: 4rem;'>{icon}</div>
             <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
-            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{msg}</p>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
@@ -438,9 +589,10 @@ def render_challenge(user_id):
             st.session_state.balloons_triggered = True
             
             # 30日達成のLINE通知
-            send_line_notification(
+            send_line_notification_to_user(
                 supabase,
-                f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！"
+                f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                user_id
             )
         
         st.markdown("""
@@ -478,14 +630,15 @@ def render_challenge(user_id):
                 # マイルストーンチェック
                 milestone = check_milestone(new_count)
                 if milestone:
-                    icon, title, message = milestone
+                    icon, title, msg = milestone
                     st.session_state.milestone_message = milestone
                     st.balloons()
                     
                     # マイルストーン達成のLINE通知
-                    send_line_notification(
+                    send_line_notification_to_user(
                         supabase,
-                        f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{message}"
+                        f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                        user_id
                     )
                 else:
                     # 通常の応援メッセージ
@@ -513,7 +666,6 @@ def render_challenge(user_id):
                     tracker.delete_today_log(user_id)
                     st.success("記録を取り消しました。再度記録できます")
                     st.session_state.cheers_message = None
-                    import time
                     time.sleep(1)
                     st.rerun()
                 else:
@@ -532,11 +684,7 @@ def render_challenge(user_id):
     st.write("")
     st.markdown("---")
     st.write("")
-    
-    # グラフ
-    st.markdown("### 📊 あなたの進捗")
-    render_progress_chart(logs)
- 
+     
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
     st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
@@ -569,7 +717,7 @@ def render_history(user_id):
 # ------------------------------
 # Main
 # ------------------------------
- 
+
 def main():
     if not auth.is_authenticated():
         render_login()
@@ -625,9 +773,12 @@ def main():
         # LINE通知テスト（デバッグ用）
         with st.sidebar.expander("🔔 LINE通知テスト", expanded=False):
             if st.button("テスト通知を送信", use_container_width=True):
-                success = send_line_notification(
+                logs = tracker.get_logs(user_id)
+                count, _ = tracker.get_click_status(logs)
+                success = send_line_notification_to_user(
                     supabase,
-                    f"🔔 テスト通知\n\n現在の習慣: {habit['name']}\n連続: {count if 'count' in locals() else '?'}日"
+                    f"🔔 テスト通知\n\n現在の習慣: {habit['name']}\n連続: {count}日",
+                    user_id
                 )
                 if success:
                     st.success("通知を送信しました！")
