@@ -58,7 +58,7 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
         print(f"LINE通知エラー: {e}")
         st.error(f"エラー: {e}")
         return False
-
+    
 # ------------------------------
 # LINE設定UI
 # ------------------------------
@@ -168,8 +168,7 @@ def render_line_settings(user_id, supabase):
                     time.sleep(1)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"保存エラー: {e}")
- 
+                    st.error(f"保存エラー: {e}") 
 # ------------------------------
 # Streamlit 設定
 # ------------------------------
@@ -376,7 +375,7 @@ def render_settings(user_id):
     st.write("")
     
     # ステップ1: 習慣の内容
-    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
+    st.markdown("###  ステップ1: 習慣の内容を決める")
     
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
