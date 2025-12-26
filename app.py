@@ -636,7 +636,7 @@ def main():
  
     if has_active_habit:
         st.sidebar.title("メニュー")
-        
+        st.write(" ")
         page_options = ["challenge", "history"]
         page_labels = {"challenge": "習慣クリック画面", "history": "履歴"}
         
@@ -666,7 +666,7 @@ def main():
         
         # 現在の習慣情報
         st.sidebar.markdown("### 現在の習慣")
-        st.sidebar.write(f"{habit['name']}**")
+        st.sidebar.write(f"**{habit['name']}**")
         st.sidebar.write(f"**開始時刻 {habit['target_time']}**")
         
         st.sidebar.markdown("---")
