@@ -589,8 +589,6 @@ def render_challenge(user_id):
                         "🌟 完璧です！明日も頑張ろう",
                     ]
                     st.session_state.cheers_message = random.choice(messages)
-                
-                st.rerun()
     
                 # 応援メッセージ表示
                 if st.session_state.cheers_message:
