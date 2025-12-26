@@ -667,7 +667,7 @@ def main():
         
         # 現在の習慣情報
         st.sidebar.markdown("### 現在の習慣")
-        st.sidebar.info(f"**{habit['name']}**")
+        st.sidebar.write(f"**{habit['name']}**")
         st.sidebar.write(f"開始時刻 {habit['target_time']}")
         
         st.sidebar.markdown("---")
