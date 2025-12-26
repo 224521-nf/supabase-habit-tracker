@@ -65,8 +65,7 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
 
 def render_line_settings(user_id, supabase):
     """LINE通知設定UI（個人利用・登録済み前提）"""
-    st.markdown("### 🔔 LINE通知設定")
-
+    
     try:
         result = (
             supabase
@@ -85,8 +84,6 @@ def render_line_settings(user_id, supabase):
         st.error("⚠️ LINE通知設定が見つかりません")
         st.info("Supabase の user_line_settings を確認してください")
         return
-
-    st.success("✅ LINE通知は設定済みです")
 
     enabled = st.toggle(
         "通知を有効にする",
@@ -662,8 +659,6 @@ def main():
         if page != st.session_state.page:
             st.session_state.page = page
             st.rerun()
-        
-        st.sidebar.markdown("---")
         
         # LINE通知設定
         with st.sidebar:
