@@ -570,9 +570,7 @@ def render_challenge(user_id):
         
         # 取り消しボタン
         st.write("")
-        with st.expander("❌ 間違えて記録した場合"):
-            st.warning("本日の記録を取り消すことができます")
-            if st.button("🔄 直前の記録を取り消す"):
+        if st.button("🔄 直前の記録を取り消す"):
                 if count > 0:
                     tracker.delete_today_log(user_id)
                     st.success("記録を取り消しました。再度記録できます")
