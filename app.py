@@ -599,7 +599,7 @@ def render_challenge(user_id):
                     </div>
                     """, unsafe_allow_html=True)
                     st.session_state.cheers_message = None
-                st.rerun()
+            st.rerun()
                 
     else:
         # 取り消しボタン
