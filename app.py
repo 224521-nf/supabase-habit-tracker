@@ -589,7 +589,8 @@ def render_challenge(user_id):
                         "🌟 完璧です！明日も頑張ろう",
                     ]
                     st.session_state.cheers_message = random.choice(messages)
-    
+                st.rerun()    
+                
                 # 応援メッセージ表示
                 if st.session_state.cheers_message:
                     st.markdown(f"""
@@ -599,7 +600,8 @@ def render_challenge(user_id):
                     </div>
                     """, unsafe_allow_html=True)
                     st.session_state.cheers_message = None
-    
+
+                
     else:
         # 取り消しボタン
         with st.expander("❌ 間違えて記録した場合"):
