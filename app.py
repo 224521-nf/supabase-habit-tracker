@@ -642,7 +642,7 @@ def main():
         st.sidebar.markdown(
             """
             <style>
-            section[data-testid = ""stSidebar] div[role = "radiogroup"] > label {
+            section[data-testid = "stSidebar"] div[role = "radiogroup"] > label {
                 margin-bottom: 14px;
             }
             </style>
