@@ -544,7 +544,7 @@ def render_challenge(user_id):
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("✅ 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+            if st.button(" 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
                 tracker.record_today(user_id)
                 
                 # 新しいカウント
@@ -566,7 +566,6 @@ def render_challenge(user_id):
                     
                 st.rerun()
     else:
-        st.success("✅ 今日は既に記録済みです。素晴らしい！")
         st.info("また明日も頑張りましょう 💪")
         
         # 取り消しボタン
@@ -639,8 +638,9 @@ def main():
     has_active_habit = habit and habit.get("name")
  
     if has_active_habit:
-        st.sidebar.title("Munu")
+        st.sidebar.title("Menu")
         st.sidebar.write("")
+        st.sidebar.markdown("---")
         
         page_options = ["challenge", "history"]
         page_labels = {"challenge": "習慣クリック画面", "history": "履歴"}
@@ -664,7 +664,7 @@ def main():
         
         # LINE通知設定
         with st.sidebar:
-            st.write("LINE通知設定")
+            st.write("### LINE通知設定")
             render_line_settings(user_id, supabase)
         
         st.sidebar.markdown("---")
