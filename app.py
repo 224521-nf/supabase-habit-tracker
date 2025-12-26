@@ -592,15 +592,15 @@ def render_challenge(user_id):
                 
                 st.rerun()
     
-    # 応援メッセージ表示
-    if st.session_state.cheers_message:
-        st.markdown(f"""
-        <div style='text-align: center; padding: 1.5rem; background-color: #d4edda; 
-                    border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28a745;'>
-            <p style='font-size: 1.3rem; margin: 0; color: #155724;'><b>{st.session_state.cheers_message}</b></p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.session_state.cheers_message = None
+        # 応援メッセージ表示
+        if st.session_state.cheers_message:
+            st.markdown(f"""
+            <div style='text-align: center; padding: 1.5rem; background-color: #d4edda; 
+                        border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28a745;'>
+                <p style='font-size: 1.3rem; margin: 0; color: #155724;'><b>{st.session_state.cheers_message}</b></p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.session_state.cheers_message = None
     
     else:
         # 取り消しボタン
