@@ -555,31 +555,28 @@ def render_challenge(user_id):
                 st.session_state.balloons_triggered = False
                 st.rerun()
     
-    # 記録ボタン
+# ------------------------------
+# 記録ボタン
+# ------------------------------
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("✅ 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+            if st.button(
+                "✅ 今日の習慣を記録する",
+                use_container_width=True,
+                type="primary",
+                help="クリックして今日の達成を記録！"
+            ):
                 tracker.record_today(user_id)
-                
-                # 新しいカウント
+
                 new_count = count + 1
-                
-                # マイルストーンチェック
                 milestone = check_milestone(new_count)
+
                 if milestone:
                     icon, title, msg = milestone
                     st.session_state.milestone_message = milestone
                     st.balloons()
-                    
-                    # マイルストーン達成のLINE通知
-                    send_line_notification_to_user(
-                        supabase,
-                        f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
-                        user_id
-                    )
                 else:
-                    # 通常の応援メッセージ
                     messages = [
                         "🎉 今日も達成！素晴らしい！",
                         "💪 いい調子！継続は力なり",
@@ -589,35 +586,37 @@ def render_challenge(user_id):
                         "🌟 完璧です！明日も頑張ろう",
                     ]
                     st.session_state.cheers_message = random.choice(messages)
-                
+
                 st.rerun()
-                
-    # 応援メッセージ表示
+
+# ------------------------------
+# 応援メッセージ（状態に関係なく表示）
+# ------------------------------
     if st.session_state.cheers_message:
         st.markdown(f"""
         <div style='text-align: center; padding: 1.5rem; background-color: #d4edda; 
             border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28a745;'>
-            <p style='font-size: 1.3rem; margin: 0; color: #155724;'><b>{st.session_state.cheers_message}</b></p>
+            <p style='font-size: 1.3rem; margin: 0; color: #155724;'>
+                <b>{st.session_state.cheers_message}</b>
+            </p>
         </div>
         """, unsafe_allow_html=True)
-                    
+
+# ------------------------------
+# 記録済み → 取り消し
+# ------------------------------
     else:
-        # 取り消しボタン
         with st.expander("❌ 間違えて記録した場合"):
             st.warning("本日の記録を取り消すことができます")
             if st.button("🔄 直前の記録を取り消す"):
                 if count > 0:
                     tracker.delete_today_log(user_id)
-                    st.success("記録を取り消しました。再度記録できます")
                     st.session_state.cheers_message = None
+                    st.success("記録を取り消しました。再度記録できます")
                     time.sleep(1)
                     st.rerun()
                 else:
                     st.error("取り消す記録がありません")
-
-    st.write("")
-    st.markdown("---")
-    st.write("")
      
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
