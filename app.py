@@ -591,26 +591,9 @@ def render_challenge(user_id):
                     st.session_state.cheers_message = random.choice(messages)
                 
                 st.rerun()
-    else:
-        st.success("✅ 今日は既に記録済みです。素晴らしい！")
-        st.info("また明日も頑張りましょう 💪")
-        
-        # 取り消しボタン
-        st.write("")
-        with st.expander("❌ 間違えて記録した場合"):
-            st.warning("本日の記録を取り消すことができます")
-            if st.button("🔄 直前の記録を取り消す"):
-                if count > 0:
-                    tracker.delete_today_log(user_id)
-                    st.success("記録を取り消しました。再度記録できます")
-                    st.session_state.cheers_message = None
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("取り消す記録がありません")
     
     # 応援メッセージ表示
-    if st.session_state.cheers_message:
+    elif st.session_state.cheers_message:
         st.markdown(f"""
         <div style='text-align: center; padding: 1.5rem; background-color: #d4edda; 
                     border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28a745;'>
@@ -622,7 +605,20 @@ def render_challenge(user_id):
     st.write("")
     st.markdown("---")
     st.write("")
-     
+        
+    # 取り消しボタン
+    with st.expander("❌ 間違えて記録した場合"):
+        st.warning("本日の記録を取り消すことができます")
+        if st.button("🔄 直前の記録を取り消す"):
+            if count > 0:
+                tracker.delete_today_log(user_id)
+                st.success("記録を取り消しました。再度記録できます")
+                st.session_state.cheers_message = None
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("取り消す記録がありません")
+                    
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
     st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
