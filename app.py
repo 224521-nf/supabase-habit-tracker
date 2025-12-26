@@ -660,15 +660,12 @@ def main():
             st.session_state.page = page
             st.rerun()
             
-        st.markdown("---")
+        st.sidebar.markdown("---")
         
         # LINE通知設定
         with st.sidebar:
+            st.write("LINE通知設定")
             render_line_settings(user_id, supabase)
-        
-        st.write("")
-        st.markdown("---")
-        st.write("")
         
         st.sidebar.markdown("---")
         
