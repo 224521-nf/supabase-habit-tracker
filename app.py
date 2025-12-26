@@ -602,22 +602,22 @@ def render_challenge(user_id):
         """, unsafe_allow_html=True)
         st.session_state.cheers_message = None
     
-    st.write("")
-    st.markdown("---")
-    st.write("")
+        st.write("")
+        st.markdown("---")
+        st.write("")
         
-    # 取り消しボタン
-    with st.expander("❌ 間違えて記録した場合"):
-        st.warning("本日の記録を取り消すことができます")
-        if st.button("🔄 直前の記録を取り消す"):
-            if count > 0:
-                tracker.delete_today_log(user_id)
-                st.success("記録を取り消しました。再度記録できます")
-                st.session_state.cheers_message = None
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("取り消す記録がありません")
+        # 取り消しボタン
+        with st.expander("❌ 間違えて記録した場合"):
+            st.warning("本日の記録を取り消すことができます")
+            if st.button("🔄 直前の記録を取り消す"):
+                if count > 0:
+                    tracker.delete_today_log(user_id)
+                    st.success("記録を取り消しました。再度記録できます")
+                    st.session_state.cheers_message = None
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("取り消す記録がありません")
                     
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
