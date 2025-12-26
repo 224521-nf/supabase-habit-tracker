@@ -639,7 +639,6 @@ def main():
  
     if has_active_habit:
         st.sidebar.title("Menu")
-        st.sidebar.write("")
         st.sidebar.markdown("---")
         
         page_options = ["challenge", "history"]
