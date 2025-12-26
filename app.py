@@ -636,7 +636,8 @@ def main():
  
     if has_active_habit:
         st.sidebar.title("メニュー")
-        st.write(" ")
+        st.sidebar.markdown(" ")
+        
         page_options = ["challenge", "history"]
         page_labels = {"challenge": "習慣クリック画面", "history": "履歴"}
         
