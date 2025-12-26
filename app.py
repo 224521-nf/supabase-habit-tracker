@@ -593,16 +593,17 @@ def render_challenge(user_id):
                 st.rerun()
     else:
         # 取り消しボタン
-        st.write("")
-        if st.button("🔄 直前の記録を取り消す"):
-            if count > 0:
-                tracker.delete_today_log(user_id)
-                st.success("記録を取り消しました。再度記録できます")
-                st.session_state.cheers_message = None
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("取り消す記録がありません")
+        with st.expander("❌ 間違えて記録した場合"):
+            st.warning("本日の記録を取り消すことができます")
+            if st.button("🔄 直前の記録を取り消す"):
+                if count > 0:
+                    tracker.delete_today_log(user_id)
+                    st.success("記録を取り消しました。再度記録できます")
+                    st.session_state.cheers_message = None
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("取り消す記録がありません")
     
     # 応援メッセージ表示
     if st.session_state.cheers_message:
@@ -702,18 +703,6 @@ def main():
         st.sidebar.info(f"**{habit['name']}**")
         st.sidebar.write(f"⏰ {habit['target_time']}")
         
-        st.sidebar.markdown("---")
-        
-        # LINE通知テスト（デバッグ用）
-        with st.sidebar.expander("🔔 LINE通知テスト", expanded=False):
-            if st.button("テスト通知を送信", use_container_width=True):
-                send_line_notification_to_user(
-                    supabase=supabase,
-                    message="🔔 テスト通知です",
-                    user_id=user_id
-        )
-            st.success("テスト通知を送信しました")
-            
         st.sidebar.markdown("---")
         
         if st.sidebar.button("🚪 ログアウト", use_container_width=True):
