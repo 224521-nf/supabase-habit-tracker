@@ -578,18 +578,7 @@ def render_challenge(user_id):
                         f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
                         user_id
                     )
-                else:
-                    # 通常の応援メッセージ
-                    messages = [
-                        "🎉 今日も達成！素晴らしい！",
-                        "💪 いい調子！継続は力なり",
-                        "⭐ 小さな進歩も大きな一歩",
-                        "🔥 一歩一歩着実に前進！",
-                        "👏 今日もお疲れさま！",
-                        "🌟 完璧です！明日も頑張ろう",
-                    ]
-                    st.session_state.cheers_message = random.choice(messages)
-                
+                    
                 st.rerun()
     else:
         st.success("✅ 今日は既に記録済みです。素晴らしい！")
@@ -693,18 +682,6 @@ def main():
         st.sidebar.info(f"**{habit['name']}**")
         st.sidebar.write(f"⏰ {habit['target_time']}")
         
-        st.sidebar.markdown("---")
-        
-        # LINE通知テスト（デバッグ用）
-        with st.sidebar.expander("🔔 LINE通知テスト", expanded=False):
-            if st.button("テスト通知を送信", use_container_width=True):
-                send_line_notification_to_user(
-                    supabase=supabase,
-                    message="🔔 テスト通知です",
-                    user_id=user_id
-        )
-            st.success("テスト通知を送信しました")
-            
         st.sidebar.markdown("---")
         
         if st.sidebar.button("🚪 ログアウト", use_container_width=True):
