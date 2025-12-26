@@ -428,17 +428,6 @@ def render_settings(user_id):
                 except Exception as e:
                     st.error(f"エラーが発生しました: {e}")
  
-# データベースへの接続を最適化
-@st.cache_resource
-def get_supabase_client():
-    return create_client(
-        st.secrets["SUPABASE_URL"],
-        st.secrets["SUPABASE_KEY"],
-    )
-
-# グローバル変数の代わりにキャッシュを使用
-supabase = get_supabase_client()
-
 def render_challenge(user_id):
     """習慣に挑戦し、進捗を記録するページ（改善版）"""
     habit = dm.load_user_habit(user_id)
@@ -666,8 +655,6 @@ def render_history(user_id):
 # ------------------------------
 # Main
 # ------------------------------
-# main.pyの最初の方に追加
-DEBUG_MODE = st.secrets.get("DEBUG_MODE", False)
 
 def main():
     if not auth.is_authenticated():
@@ -722,53 +709,15 @@ def main():
         
         st.sidebar.markdown("---")
         
-        # デバッグモード
-        if DEBUG_MODE:
-            st.sidebar.markdown("---")
-            st.sidebar.markdown("### 🔧 デバッグモード")
-            
-            with st.sidebar.expander("⚡ クイックテスト"):
-                # 習慣の時刻を現在時刻+2分に設定
-                if st.button("⏰ 2分後に通知テスト", use_container_width=True):
-                    from datetime import datetime, timedelta
-                    future_time = (datetime.now() + timedelta(minutes=2)).strftime("%H:%M")
-                    supabase.table("habits").update({
-                        "target_time": future_time
-                    }).eq("user_id", user_id).execute()
-                    st.success(f"✅ 通知時刻を {future_time} に設定しました")
-                
-                # 記録を強制追加
-                if st.button("➕ 今日の記録を追加", use_container_width=True):
-                    tracker.record_today(user_id)
-                    st.success("✅ 記録を追加しました")
-                    st.rerun()
-                
-                # 記録を削除
-                if st.button("➖ 今日の記録を削除", use_container_width=True):
-                    tracker.delete_today_log(user_id)
-                    st.success("✅ 記録を削除しました")
-                    st.rerun()
-                
-                # カウントを任意の数に設定
-                count_input = st.number_input("連続日数を設定", 0, 30, count)
-                if st.button("📊 カウント設定", use_container_width=True):
-                    # カウント分の記録を生成
-                    tracker.reset_logs(user_id)
-                    for i in range(count_input):
-                        date = (datetime.date.today() - timedelta(days=count_input - i - 1)).strftime(DATE_FORMAT)
-                        supabase.table("progress_logs").insert({
-                            "user_id": user_id,
-                            "log_date": date,
-                            "completion_hour": random.randint(6, 23)
-                        }).execute()
-                    st.success(f"✅ {count_input}日分の記録を生成しました")
-                    st.rerun()
-                
-                # すべてリセット
-                if st.button("🔄 完全リセット", use_container_width=True):
-                    tracker.reset_logs(user_id)
-                    st.success("✅ すべての記録を削除しました")
-                    st.rerun()
+        # LINE通知テスト（デバッグ用）
+        with st.sidebar.expander("🔔 LINE通知テスト", expanded=False):
+            if st.button("テスト通知を送信", use_container_width=True):
+                send_line_notification_to_user(
+                    supabase=supabase,
+                    message="🔔 テスト通知です",
+                    user_id=user_id
+        )
+            st.success("テスト通知を送信しました")
             
         st.sidebar.markdown("---")
         
