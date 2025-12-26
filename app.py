@@ -651,7 +651,7 @@ def main():
         )
         
         page_options = ["challenge", "history"]
-        page_labels = {"challenge": "習慣クリック画面", "history": "履歴画面"}
+        page_labels = {"challenge": "**習慣クリック画面**", "history": "**履歴画面**"}
         
         current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
         
@@ -678,8 +678,8 @@ def main():
         
         # 現在の習慣情報
         st.sidebar.markdown("### 現在の習慣")
-        st.sidebar.write(f"**{habit['name']}**")
-        st.sidebar.write(f"**開始時刻 {habit['target_time']}**")
+        st.sidebar.write(f"{habit['name']}")
+        st.sidebar.write(f"開始時刻 {habit['target_time']}")
         
         st.sidebar.markdown("---")
         
