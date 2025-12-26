@@ -659,11 +659,12 @@ def main():
         if page != st.session_state.page:
             st.session_state.page = page
             st.rerun()
+            
+        st.markdown("---")
         
         # LINE通知設定
         with st.sidebar:
-            with st.expander("🔔 LINE通知設定", expanded=False):
-                render_line_settings(user_id, supabase)
+            render_line_settings(user_id, supabase)
         
         st.write("")
         st.markdown("---")
