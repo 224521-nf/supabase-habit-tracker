@@ -107,7 +107,6 @@ def render_line_settings(user_id, supabase):
         except Exception as e:
             st.error(f"更新エラー: {e}")
 
- 
 # ------------------------------
 # Streamlit 設定
 # ------------------------------
@@ -305,14 +304,6 @@ def render_settings(user_id):
     st.write("")
     st.write("")
     
-    # LINE通知設定
-    with st.expander("🔔 LINE通知設定", expanded=False):
-        render_line_settings(user_id, supabase)
-    
-    st.write("")
-    st.markdown("---")
-    st.write("")
-    
     # ステップ1: 習慣の内容
     st.markdown("### 📝 ステップ1: 習慣の内容を決める")
     
@@ -381,9 +372,6 @@ def render_settings(user_id):
         value=t,
         help="毎日この時間に実行することを目指しましょう"
     )
-    
-    st.write("")
-    st.write("")
     
     # 確認と開始
     if name and time_input:
@@ -674,6 +662,16 @@ def main():
         if page != st.session_state.page:
             st.session_state.page = page
             st.rerun()
+        
+        st.sidebar.markdown("---")
+        
+        # LINE通知設定
+        with st.expander("🔔 LINE通知設定", expanded=False):
+            render_line_settings(user_id, supabase)
+    
+        st.write("")
+        st.markdown("---")
+        st.write("")
         
         st.sidebar.markdown("---")
         
