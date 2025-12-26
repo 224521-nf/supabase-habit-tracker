@@ -638,14 +638,25 @@ def main():
         st.sidebar.title("メニュー")
         st.sidebar.markdown(" ")
         
+        #ラジオボタン間隔調整
+        st.sidebar.markdown(
+            """
+            <style>
+            section[data-testid = ""stSidebar] div[role = "radiogroup"] > label {
+                margin-bottom: 14px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
         page_options = ["challenge", "history"]
-        page_labels = {"challenge": "習慣クリック画面", "history": "履歴"}
+        page_labels = {"challenge": "習慣クリック画面", "history": "履歴画面"}
         
         current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
         
         page = st.sidebar.radio(
             "移動",
-            
             options=page_options,
             format_func=lambda x: page_labels[x],
             index=current_index,
