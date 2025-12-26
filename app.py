@@ -639,11 +639,11 @@ def main():
     has_active_habit = habit and habit.get("name")
  
     if has_active_habit:
-        st.sidebar.title("📱 メニュー")
+        st.sidebar.title("Munu")
         st.sidebar.write("")
         
         page_options = ["challenge", "history"]
-        page_labels = {"challenge": "🎯 挑戦中", "history": "🏆 履歴"}
+        page_labels = {"challenge": "習慣クリック画面", "history": "履歴"}
         
         current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
         
@@ -670,20 +670,20 @@ def main():
         st.sidebar.markdown("---")
         
         # 現在の習慣情報
-        st.sidebar.markdown("### 📋 現在の習慣")
+        st.sidebar.markdown("### 現在の習慣")
         st.sidebar.info(f"**{habit['name']}**")
-        st.sidebar.write(f"⏰ {habit['target_time']}")
+        st.sidebar.write(f"{habit['target_time']}")
         
         st.sidebar.markdown("---")
         
-        if st.sidebar.button("🚪 ログアウト", use_container_width=True):
+        if st.sidebar.button(" ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
     else:
-        st.sidebar.title("📱 メニュー")
+        st.sidebar.title("Menu")
         st.sidebar.info("習慣を設定してください")
         st.sidebar.markdown("---")
-        if st.sidebar.button("🚪 ログアウト", use_container_width=True):
+        if st.sidebar.button(" ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
  
