@@ -17,7 +17,7 @@ from habit_tracker import HabitTracker
 # 設定
 # ------------------------------
 
-DEBUG_MODE = st.secrets.get("DEBUG_MODE") == TrueS
+DEBUG_MODE = st.secrets.get("DEBUG_MODE") == True
 
 # ------------------------------
 # Supabase初期化（キャッシュ）
