@@ -478,19 +478,7 @@ def render_challenge(user_id):
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
             # リセット処理
             tracker.reset_logs(user_id)
-            
-            # リセット画面を表示
-            st.markdown("""
-            <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); 
-                        border-radius: 20px; color: white; margin: 2rem 0;'>
-                <div style='font-size: 4rem;'>😢</div>
-                <h1 style='color: white; margin: 1rem 0;'>連続記録がリセットされました</h1>
-                <p style='font-size: 1.2rem; color: #f0f0f0;'>{MISS_DAYS_THRESHOLD}日以上記録がなかったため、カウントをリセットしました</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.write("")
-            st.write("")
+
             
             st.markdown("### 💭 どうしますか？")
             st.info("同じ習慣で再チャレンジすることも、新しい習慣に変更することもできます")
@@ -503,11 +491,12 @@ def render_challenge(user_id):
                 st.markdown("""
                 <div style='text-align: center; padding: 1rem; background-color: #e3f2fd; 
                             border-radius: 10px; border: 2px solid #2196f3;'>
-                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>🔄</div>
                     <p style='font-weight: bold; color: #1976d2; margin: 0;'>同じ習慣で再挑戦</p>
                     <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>今の習慣を続ける</p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                st.write(" ")
                 
                 if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
                     st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
@@ -519,11 +508,12 @@ def render_challenge(user_id):
                 st.markdown("""
                 <div style='text-align: center; padding: 1rem; background-color: #fff3e0; 
                             border-radius: 10px; border: 2px solid #ff9800;'>
-                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>✏️</div>
                     <p style='font-weight: bold; color: #f57c00; margin: 0;'>習慣を変更する</p>
                     <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>新しい習慣を設定</p>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                st.write(" ")
                 
                 if st.button("新しい習慣を設定", use_container_width=True):
                     dm.delete_user_habit(user_id)
