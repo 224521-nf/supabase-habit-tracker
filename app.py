@@ -427,10 +427,22 @@ def render_challenge(user_id):
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
+    # --- 2. 【最優先】リセットが必要かどうかの事前判定 ---
+    # まだ decision フェーズでなく、かつ最後に記録した日から規定日数が経過している場合
+    if st.session_state.get('challenge_phase') != 'decision' and last_date:
+        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+        days_since_last = (datetime.date.today() - last_date_obj).days
+        
+        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
+            st.session_state['challenge_phase'] = 'decision'
+            st.session_state['message'] = f"{MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットする必要があります。"
+            # ここで rerun せずに、そのまま下の decision フェーズ処理へ流すか、強制 rerun する
+            st.rerun()
+    
     # ========================================
     # 【最優先】decision フェーズの処理
     # ========================================
-    if st.session_state.get('challenge_phase') == 'decision':
+    if st.session_state.get('challenge_phase') != 'decision' and last_date:
         st.error(st.session_state.get('message', '2日間以上記録がなかったため、連続日数がリセットされました'))
         st.write('---')
         st.write(' この習慣を続けますか？それとも新しい習慣を設定しますか？')
@@ -456,21 +468,21 @@ def render_challenge(user_id):
         
         return  # ← ここで終了（重要）
     
-    # ========================================
-    # リセット判定
-    # ========================================
-    if last_date:
-        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-        days_since_last = (datetime.date.today() - last_date_obj).days
+    # # ========================================
+    # # リセット判定
+    # # ========================================
+    # if last_date:
+    #     last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+    #     days_since_last = (datetime.date.today() - last_date_obj).days
         
-        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            # decision フェーズに遷移
-            st.session_state['challenge_phase'] = 'decision'
-            st.session_state['message'] = (
-                f" {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットする必要があります。\n\n"
-            )
+    #     if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
+    #         # decision フェーズに遷移
+    #         st.session_state['challenge_phase'] = 'decision'
+    #         st.session_state['message'] = (
+    #             f" {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットする必要があります。\n\n"
+    #         )
             
-            st.rerun()   
+    #         st.rerun()   
     # ========================================
     # 通常のチャレンジ画面
     # ========================================
