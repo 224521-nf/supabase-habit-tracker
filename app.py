@@ -427,27 +427,83 @@ def render_challenge(user_id):
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
-    # 2日以上記録がない場合のリセット判定
+    # ========================================
+    # 【最優先】decision フェーズの処理
+    # ========================================
+    if st.session_state.get('challenge_phase') == 'decision':
+        st.error(st.session_state.get('message', '😢 連続日数がリセットされます'))
+        st.write('---')
+        
+        col_c1, col_c2 = st.columns(2)
+        
+        with col_c1:
+            if st.button('🔄 再チャレンジ', key='continue_habit', use_container_width=True, type="primary"):
+                tracker.reset_logs(user_id)
+                st.session_state['challenge_phase'] = None  # フェーズをクリア
+                st.success(f"✅ 習慣「{habit['name']}」を再開します！")
+                
+                # LINE通知
+                try:
+                    send_line_notification_to_user(
+                        supabase,
+                        f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
+                        user_id
+                    )
+                except:
+                    pass
+                
+                time.sleep(1)
+                st.rerun()
+
+        with col_c2:
+            if st.button('📝 習慣を変更する', key='change_habit', use_container_width=True):
+                # 現在の習慣をアーカイブ
+                try:
+                    tracker.archive(user_id, habit["name"], habit["target_time"])
+                except:
+                    pass
+                
+                tracker.reset_logs(user_id)
+                dm.delete_user_habit(user_id)
+                
+                st.session_state['challenge_phase'] = None  # フェーズをクリア
+                st.session_state.page = 'settings'
+                st.info("✅ 新しい習慣を設定してください")
+                time.sleep(1)
+                st.rerun()
+        
+        return  # ← ここで終了（重要）
+    
+    # ========================================
+    # リセット判定
+    # ========================================
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
         
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            st.error(f'😢 {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットしました')
-            st.info("💪 大丈夫！また今日から始めましょう！")
-            
-            # LINE通知を送信
-            send_line_notification_to_user(
-                supabase,
-                f"⚠️ 習慣がリセットされました\n「{habit['name']}」\n\n{MISS_DAYS_THRESHOLD}日間記録がなかったため、連続日数がリセットされました。\n\nまた今日から頑張りましょう！💪",
-                user_id
+            # decision フェーズに遷移
+            st.session_state['challenge_phase'] = 'decision'
+            st.session_state['message'] = (
+                f"😢 {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットする必要があります。\n\n"
+                f"💪 この習慣を続けますか？それとも新しい習慣を設定しますか？"
             )
             
-            tracker.reset_logs(user_id)
-            count = 0
-            last_date = None
-            time.sleep(2)
-            st.rerun()
+            # LINE通知
+            try:
+                send_line_notification_to_user(
+                    supabase,
+                    f"⚠️ {MISS_DAYS_THRESHOLD}日間未記録です\n「{habit['name']}」\n\n連続日数がリセットされます。アプリで継続/変更を選択してください。",
+                    user_id
+                )
+            except:
+                pass
+            
+            st.rerun()  # decision 画面を表示
+    
+    # ========================================
+    # 通常のチャレンジ画面
+    # ========================================
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
@@ -506,11 +562,14 @@ def render_challenge(user_id):
             st.session_state.balloons_triggered = True
             
             # 30日達成のLINE通知
-            send_line_notification_to_user(
-                supabase,
-                f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
-                user_id
-            )
+            try:
+                send_line_notification_to_user(
+                    supabase,
+                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                    user_id
+                )
+            except:
+                pass
         
         st.markdown("""
         <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
@@ -538,33 +597,42 @@ def render_challenge(user_id):
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button(" 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
-                tracker.record_today(user_id)
-                
-                # 新しいカウント
-                new_count = count + 1
-                
-                # マイルストーンチェック
-                milestone = check_milestone(new_count)
-                if milestone:
-                    icon, title, msg = milestone
-                    st.session_state.milestone_message = milestone
-                    st.balloons()
+            if st.button("✅ 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+                with st.spinner('記録中...'):
+                    tracker.record_today(user_id)
                     
-                    # マイルストーン達成のLINE通知
-                    send_line_notification_to_user(
-                        supabase,
-                        f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
-                        user_id
-                    )
+                    # 新しいカウント
+                    new_count = count + 1
+                    
+                    # マイルストーンチェック
+                    milestone = check_milestone(new_count)
+                    if milestone:
+                        icon, title, msg = milestone
+                        st.session_state.milestone_message = milestone
+                        
+                        # マイルストーン達成のLINE通知
+                        try:
+                            send_line_notification_to_user(
+                                supabase,
+                                f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                                user_id
+                            )
+                        except:
+                            pass
+                    
+                    if milestone:
+                        st.balloons()
                     
                 st.rerun()
     else:
-        st.info("また明日も頑張りましょう！！！")
+        st.success("✅ 今日は既に記録済みです。素晴らしい！")
+        st.info("また明日も頑張りましょう 💪")
         
         # 取り消しボタン
         st.write("")
-        if st.button("🔄 直前の記録を取り消す"):
+        with st.expander("❌ 間違えて記録した場合"):
+            st.warning("本日の記録を取り消すことができます")
+            if st.button("🔄 直前の記録を取り消す"):
                 if count > 0:
                     tracker.delete_today_log(user_id)
                     st.success("記録を取り消しました。再度記録できます")
