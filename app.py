@@ -458,7 +458,6 @@ def render_challenge(user_id):
                     three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
                     dm.save_click_log(user_id, three_days_ago, 12)
                     st.success("最終記録日を3日前に設定しました")
-                    import time
                     time.sleep(1)
                     st.rerun()
         
@@ -466,7 +465,6 @@ def render_challenge(user_id):
             if st.button("🔄 強制リセット", help="手動でリセット"):
                 tracker.reset_logs(user_id)
                 st.success("リセットしました")
-                import time
                 time.sleep(1)
                 st.rerun()
     
@@ -481,22 +479,32 @@ def render_challenge(user_id):
 
             st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化しました。")   
             st.write("")
-            st.markdown(" <p style = color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
             st.write("")
             st.write("")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
+                if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
                     st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
-                    import time
+                    
+                    # LINE通知を送信
+                    try:
+                        send_line_notification_to_user(
+                            supabase,
+                            f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
+                            user_id
+                        )
+                    except:
+                        pass
+                    
                     time.sleep(1.5)
                     st.rerun()
             
             with col2:
-                if st.button("新しい習慣を設定", use_container_width=True):
-                    #現在のログを出力
+                if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
+                    # 現在のログを取得
                     all_logs = dm.load_click_logs(user_id)
                     
                     if all_logs:
@@ -504,24 +512,36 @@ def render_challenge(user_id):
                         all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
                         
                         # 履歴に保存
-                        history_record = {
-                            "user_id": user_id,
-                            "habit_name": habit["name"] + " (未完了)",
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
-                        }
-                        dm.save_history(history_record)
-                        st.success("📝 現在の習慣を履歴に保存しました")
+                        try:
+                            history_record = {
+                                "user_id": user_id,
+                                "habit_name": habit["name"] + " (未完了)",
+                                "target_time": habit["target_time"],
+                                "archived_at": datetime.datetime.now().isoformat(),
+                                "total_days": len(all_logs_sorted),
+                                "log_summary": all_logs_sorted,
+                            }
+                            dm.save_history(history_record)
+                            st.success("📝 現在の習慣を履歴に保存しました")
+                        except Exception as e:
+                            st.warning(f"履歴の保存でエラーが発生しました: {e}")
                     
-                    #習慣とログを削除
-                    tracker.reset_logs(user_id)
-                    dm.delete_user_habit(user_id)
+                    # 習慣とログを削除
+                    try:
+                        tracker.reset_logs(user_id)
+                        dm.delete_user_habit(user_id)
+                    except Exception as e:
+                        st.error(f"削除エラー: {e}")
+                        return
                     
+                    # セッションステートをクリア
                     st.session_state.page = "settings"
-                    st.info("新しい習慣を設定してください")
-                    import time
+                    st.session_state.pop('challenge_phase', None)
+                    st.session_state.pop('cheers_message', None)
+                    st.session_state.pop('milestone_message', None)
+                    st.session_state.pop('balloons_triggered', None)
+                    
+                    st.info("✅ 新しい習慣を設定してください")
                     time.sleep(1)
                     st.rerun()
             
@@ -583,6 +603,16 @@ def render_challenge(user_id):
         if not st.session_state.balloons_triggered:
             st.balloons()
             st.session_state.balloons_triggered = True
+            
+            # 30日達成のLINE通知
+            try:
+                send_line_notification_to_user(
+                    supabase,
+                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                    user_id
+                )
+            except:
+                pass
         
         st.markdown("""
         <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
@@ -620,6 +650,18 @@ def render_challenge(user_id):
                 milestone = check_milestone(new_count)
                 if milestone:
                     st.session_state.milestone_message = milestone
+                    
+                    # マイルストーン達成のLINE通知
+                    icon, title, msg = milestone
+                    try:
+                        send_line_notification_to_user(
+                            supabase,
+                            f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                            user_id
+                        )
+                    except:
+                        pass
+                    
                     st.balloons()
                 else:
                     # 通常の応援メッセージ
@@ -635,6 +677,7 @@ def render_challenge(user_id):
                 
                 st.rerun()
     else:
+        st.success("✅ 今日は既に記録済みです。素晴らしい！")
         st.info("また明日も頑張りましょう 💪")
         
         # 取り消しボタン
@@ -646,7 +689,6 @@ def render_challenge(user_id):
                     tracker.delete_today_log(user_id)
                     st.success("記録を取り消しました。再度記録できます")
                     st.session_state.cheers_message = None
-                    import time
                     time.sleep(1)
                     st.rerun()
                 else:
