@@ -410,9 +410,16 @@ def render_settings(user_id):
  
 def render_challenge(user_id):
     """習慣に挑戦し、進捗を記録するページ（改善版）"""
+    
+    # ページ遷移フラグをチェック
+    if st.session_state.get('force_settings_page', False):
+        st.session_state.page = "settings"
+        st.session_state.pop('force_settings_page', None)
+        st.rerun()
+        return
+    
     habit = dm.load_user_habit(user_id)
     
-    # 1. 習慣設定チェック
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
         if st.button("習慣を設定する", use_container_width=True):
@@ -420,16 +427,27 @@ def render_challenge(user_id):
             st.rerun()
         return
     
-    # 2. ログの取得とステータス確認
-    logs = tracker.get_logs(user_id)
+    # ヘッダー
+    st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
     
+    st.write("")
+    
+    logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
+    # デバッグ情報（開発者用）
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+        st.write(f"**最終記録日:** {last_date}")
+        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        st.write(f"**現在のページ:** {st.session_state.get('page', 'なし')}")
+        st.write(f"**習慣:** {habit}")
+        
     # 2日以上記録がない場合のリセット判定
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
-    
+
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
             # まだリセット画面を表示していない場合のみフラグを立てる
             if not st.session_state.get('show_reset_screen', False):
@@ -514,7 +532,153 @@ def render_challenge(user_id):
                         st.error(f"削除エラー: {e}")
         
             # リセット画面を表示したら、以降の処理をスキップ
-            return
+            return  # ← このreturnの位置が重要！if文の最後
+
+    # Session Stateの初期化
+    if 'cheers_message' not in st.session_state:
+        st.session_state.cheers_message = None
+
+    if 'milestone_message' not in st.session_state:
+        st.session_state.milestone_message = None
+
+    if 'balloons_triggered' not in st.session_state:
+        st.session_state.balloons_triggered = False
+
+    # プログレスバー
+    st.write("")
+    render_progress_bar(count, MAX_CHALLENGE_DAYS)
+    st.write("")
+
+    # 統計情報
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "🔥 連続記録", 
+            f"{count}日",
+            delta=None if count == 0 else "+1" if tracker.can_click_today(last_date) else "達成済"
+        )
+
+    with col2:
+        display_date = last_date if last_date else "---"
+        st.metric("📅 最終記録日", display_date)
+
+    with col3:
+        remaining = MAX_CHALLENGE_DAYS - count
+        st.metric("🎯 残り日数", f"{remaining}日")
+
+    st.write("")
+    st.markdown("---")
+    st.write("")
+
+    # マイルストーンメッセージ
+    if st.session_state.milestone_message:
+        icon, title, message = st.session_state.milestone_message
+        st.markdown(f"""
+        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 15px; color: white; margin: 2rem 0;'>
+            <div style='font-size: 4rem;'>{icon}</div>
+            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.session_state.milestone_message = None
+
+    # 30日達成
+    if tracker.is_completed(count):
+        if not st.session_state.balloons_triggered:
+            st.balloons()
+            st.session_state.balloons_triggered = True
+            
+            # 30日達成のLINE通知
+            try:
+                send_line_notification_to_user(
+                    supabase,
+                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                    user_id
+                )
+            except:
+                pass
+        
+        st.markdown("""
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                    border-radius: 20px; color: white;'>
+            <div style='font-size: 5rem;'>🏆</div>
+            <h1 style='color: white;'>30日完全達成！</h1>
+            <p style='font-size: 1.3rem;'>おめでとうございます！あなたは素晴らしい！</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("")
+        st.write("")
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🎉 次の習慣にチャレンジする", use_container_width=True, type="primary"):
+                tracker.archive(user_id, habit["name"], habit["target_time"])
+                tracker.reset_logs(user_id)
+                dm.delete_user_habit(user_id)
+                st.session_state.page = "settings"
+                st.session_state.balloons_triggered = False
+                st.rerun()
+
+    # 記録ボタン
+    elif tracker.can_click_today(last_date):
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+                tracker.record_today(user_id)
+                
+                # 新しいカウント
+                new_count = count + 1
+                
+                # マイルストーンチェック
+                milestone = check_milestone(new_count)
+                if milestone:
+                    st.session_state.milestone_message = milestone
+                    
+                    # マイルストーン達成のLINE通知
+                    icon, title, msg = milestone
+                    try:
+                        send_line_notification_to_user(
+                            supabase,
+                            f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                            user_id
+                        )
+                    except:
+                        pass
+                    
+                    st.balloons()
+                else:
+                    # 通常の応援メッセージ
+                    messages = [
+                        "🎉 今日も達成！素晴らしい！",
+                        "💪 いい調子！継続は力なり",
+                        "⭐ 小さな進歩も大きな一歩",
+                        "🔥 一歩一歩着実に前進！",
+                        "👏 今日もお疲れさま！",
+                        "🌟 完璧です！明日も頑張ろう",
+                    ]
+                    st.session_state.cheers_message = random.choice(messages)
+                
+                st.rerun()
+    else:
+        st.success("✅ 今日は既に記録済みです。素晴らしい！")
+        st.info("また明日も頑張りましょう 💪")
+        
+        # 取り消しボタン
+        st.write("")
+        with st.expander("❌ 間違えて記録した場合"):
+            st.warning("本日の記録を取り消すことができます")
+            if st.button("🔄 直前の記録を取り消す"):
+                if count > 0:
+                    tracker.delete_today_log(user_id)
+                    st.success("記録を取り消しました。再度記録できます")
+                    st.session_state.cheers_message = None
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("取り消す記録がありません")
                      
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
@@ -570,12 +734,7 @@ def main():
     
     habit = dm.load_user_habit(user_id)
     has_active_habit = habit and habit.get("name")
-    
-    # 習慣がないのに challenge ページに居ようとしたら settings に強制送還する
-    if not has_active_habit and st.session_state.page == "challenge":
-        st.session_state.page = "settings"
-        st.rerun()
-    
+ 
     if has_active_habit:
         st.sidebar.title("メニュー")
         st.sidebar.markdown(" ")
