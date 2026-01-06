@@ -544,8 +544,8 @@ def render_challenge(user_id):
             except Exception as e:
                 st.error(f"削除エラー: {e}")
             
-            # リセット画面を表示したら、以降の処理をスキップ
-            return
+        # リセット画面を表示したら、以降の処理をスキップ
+        return
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
