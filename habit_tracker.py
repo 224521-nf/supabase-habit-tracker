@@ -67,3 +67,16 @@ class HabitTracker:
     def reset_logs(self, user_id: str):
         """progress_logsテーブルの記録をリセットする"""
         self.data_manager.reset_click_logs(user_id)
+    
+    # HabitTrackerクラス内に追加
+    def needs_reset(self, logs: list, threshold: int) -> bool:
+        """リセットが必要な状態（記録が途切れている）かを判定する"""
+        if not logs:
+            return False
+    
+        # get_click_statusと同じく最新のログを取得
+        last_date_str = logs[0]["log_date"]
+        last_date_obj = datetime.datetime.strptime(last_date_str, "%Y-%m-%d").date()
+        days_since_last = (datetime.date.today() - last_date_obj).days
+    
+        return days_since_last > threshold
