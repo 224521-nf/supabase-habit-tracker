@@ -504,7 +504,7 @@ def render_challenge(user_id):
                     st.rerun()
             
             # リセット画面を表示したら、以降の処理をスキップ
-            st.stop()
+            return
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
