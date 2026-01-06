@@ -529,22 +529,26 @@ def render_challenge(user_id):
                     try:
                         tracker.reset_logs(user_id)
                         dm.delete_user_habit(user_id)
+                        
+                        # セッションステートをクリア（必要なものに絞る）
+                        keys_to_clear = [
+                            'reset_done', 'show_reset_screen', 'challenge_phase',
+                            'cheers_message', 'milestone_message', 'balloons_triggered'
+                        ]
+                        for key in keys_to_clear:
+                            if key in st.session_state:
+                                del st.session_state[key]
+                        
+                        # ページ遷移をセットして即座にリラン
+                        st.session_state.page = "settings"
+                        st.rerun() # ここで確実にリランさせる
+                        
                     except Exception as e:
                         st.error(f"削除エラー: {e}")
-                        return
-                    
-                  # セッションステートをクリア
-                    st.session_state.pop('reset_done', None)
-                    st.session_state.pop('show_reset_screen', None)
-                    st.session_state.pop('challenge_phase', None)
-                    st.session_state.pop('cheers_message', None)
-                    st.session_state.pop('milestone_message', None)
-                    st.session_state.pop('balloons_triggered', None)
-                    
-                    # ページ遷移
-                    st.session_state.page = "settings"
-                    time.sleep(0.5)
-                    st.rerun()
+                        # エラーが出てもページ遷移だけは試みる
+                        if st.button("強制的に設定画面へ"):
+                            st.session_state.page = "settings"
+                            st.rerun()
             
             # リセット画面を表示したら、以降の処理をスキップ
             return
@@ -749,7 +753,12 @@ def main():
     
     habit = dm.load_user_habit(user_id)
     has_active_habit = habit and habit.get("name")
- 
+    
+    # 習慣がないのに challenge ページに居ようとしたら settings に強制送還する
+    if not has_active_habit and st.session_state.page == "challenge":
+        st.session_state.page = "settings"
+        st.rerun()
+    
     if has_active_habit:
         st.sidebar.title("メニュー")
         st.sidebar.markdown(" ")
