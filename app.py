@@ -431,7 +431,9 @@ def render_challenge(user_id):
     # 【最優先】decision フェーズの処理
     # ========================================
     if st.session_state.get('challenge_phase') == 'decision':
-        st.error(st.session_state.get('message', '😢 連続日数がリセットされます'))
+        st.error(st.session_state.get('message', '2日間以上記録がなかったため、連続日数がリセットされました'))
+        st.write('---')
+        st.write(' この習慣を続けますか？それとも新しい習慣を設定しますか？')
         st.write('---')
         
         col_c1, col_c2 = st.columns(2)
