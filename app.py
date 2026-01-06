@@ -409,7 +409,7 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
  
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ（改善版）"""
+    """習慣に挑戦し、進捗を記録するページ"""
     habit = dm.load_user_habit(user_id)
     
     # 1. 習慣設定チェック
@@ -420,51 +420,47 @@ def render_challenge(user_id):
             st.rerun()
         return
     
-    # 2. ログの取得とステータス確認
+    # 2. ログの取得
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
-    # 3. 最優先：リセット判定（画面描画の前に実行）
-    if last_date:
-        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-        days_since_last = (datetime.date.today() - last_date_obj).days
-        st.write(f"DEBUG: 経過={days_since_last}, 閾値={MISS_DAYS_THRESHOLD}")
+    # 3. 最優先：リセット判定
+    if tracker.needs_reset(logs, MISS_DAYS_THRESHOLD):
+        # リセット画面の表示
+        st.markdown(f"### 🎯 {habit['name']}")
+        st.error("### 習慣の連続日数が途切れたため、リセットが必要です。")
+        st.write("")
+        st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.write("")
         
-        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            # リセット画面の表示
-            st.markdown(f"### 🎯 {habit['name']}")
-            st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化する必要があります。")
-            st.write("")
-            st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
-            st.write("")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
-                    tracker.reset_logs(user_id)
-                    st.success(f"💪 「{habit['name']}」で再チャレンジ開始！")
-                    st.rerun()
-            
-            with col2:
-                if st.button("新しい習慣を設定", use_container_width=True, key="reset_new_habit"):
-                    # 履歴保存と削除処理
-                    all_logs = dm.load_click_logs(user_id)
-                    if all_logs:
-                        all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                        dm.save_history({
-                            "user_id": user_id,
-                            "habit_name": habit["name"] + " (リセット)",
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
-                        })
-                    tracker.reset_logs(user_id)
-                    dm.delete_user_habit(user_id)
-                    st.session_state.page = "settings"
-                    st.rerun()
-            
-            return # ここで関数を終了させる（超重要）
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="reset_recharge"):
+                tracker.reset_logs(user_id)
+                st.success("💪 再チャレンジ開始！")
+                time.sleep(1)
+                st.rerun()
+        
+        with col2:
+            if st.button("新しい習慣を設定", use_container_width=True, key="reset_new_habit"):
+                # 履歴保存
+                all_logs = dm.load_click_logs(user_id)
+                if all_logs:
+                    dm.save_history({
+                        "user_id": user_id,
+                        "habit_name": habit["name"] + " (リセット)",
+                        "target_time": habit["target_time"],
+                        "archived_at": datetime.datetime.now().isoformat(),
+                        "total_days": len(all_logs),
+                        "log_summary": all_logs,
+                    })
+                # 削除と遷移
+                tracker.reset_logs(user_id)
+                dm.delete_user_habit(user_id)
+                st.session_state.page = "settings"
+                st.rerun()
+        
+        return # リセット画面ならここで終了
 
     # 4. 通常のメイン画面表示
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
@@ -473,8 +469,9 @@ def render_challenge(user_id):
     # デバッグ情報
     with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
         st.write(f"**最終記録日:** {last_date}")
-        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        st.write(f"**ログの数:** {len(logs)}")
         if last_date:
+            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
             st.write(f"**経過日数:** {(datetime.date.today() - last_date_obj).days}日")
 
     # プログレスバーと統計
@@ -495,11 +492,8 @@ def render_challenge(user_id):
     st.markdown("---")
     st.write("")
 
-    # 5. 記録ボタン / 達成済みメッセージ
+    # 5. 達成・記録・取り消し
     if tracker.is_completed(count):
-        if not st.session_state.get('balloons_triggered'):
-            st.balloons()
-            st.session_state.balloons_triggered = True
         st.success("🏆 30日完全達成おめでとうございます！")
         if st.button("🎉 次の習慣にチャレンジする", use_container_width=True, type="primary"):
             tracker.archive(user_id, habit["name"], habit["target_time"])
@@ -516,8 +510,6 @@ def render_challenge(user_id):
                 st.rerun()
     else:
         st.success("✅ 今日は既に記録済みです！")
-        st.info("また明日も頑張りましょう 💪")
-        
         with st.expander("❌ 間違えて記録した場合"):
             if st.button("🔄 直前の記録を取り消す"):
                 tracker.delete_today_log(user_id)
