@@ -479,25 +479,13 @@ def render_challenge(user_id):
             # リセット処理
             tracker.reset_logs(user_id)
 
-            
-            st.markdown("### 💭 どうしますか？")
-            st.info("同じ習慣で再チャレンジすることも、新しい習慣に変更することもできます")
-            
+            st.write("習慣の連続日数が２日間連続で更新されなかったため、日数を０に初期化しました。同じ習慣で再チャレンジすることも、新しい習慣に変更することもできます")
+            st.markdown("### 💭 どうしますか？")        
             st.write("")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("""
-                <div style='text-align: center; padding: 1rem; background-color: #e3f2fd; 
-                            border-radius: 10px; border: 2px solid #2196f3;'>
-                    <p style='font-weight: bold; color: #1976d2; margin: 0;'>同じ習慣で再挑戦</p>
-                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>今の習慣を続ける</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.write(" ")
-                
                 if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
                     st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
                     import time
@@ -505,16 +493,6 @@ def render_challenge(user_id):
                     st.rerun()
             
             with col2:
-                st.markdown("""
-                <div style='text-align: center; padding: 1rem; background-color: #fff3e0; 
-                            border-radius: 10px; border: 2px solid #ff9800;'>
-                    <p style='font-weight: bold; color: #f57c00; margin: 0;'>習慣を変更する</p>
-                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>新しい習慣を設定</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.write(" ")
-                
                 if st.button("新しい習慣を設定", use_container_width=True):
                     dm.delete_user_habit(user_id)
                     st.session_state.page = "settings"
@@ -638,7 +616,6 @@ def render_challenge(user_id):
                 
                 st.rerun()
     else:
-        st.success("✅ 今日は既に記録済みです。素晴らしい！")
         st.info("また明日も頑張りましょう 💪")
         
         # 取り消しボタン
@@ -655,17 +632,7 @@ def render_challenge(user_id):
                     st.rerun()
                 else:
                     st.error("取り消す記録がありません")
-    
-    # 応援メッセージ表示
-    if st.session_state.cheers_message:
-        st.markdown(f"""
-        <div style='text-align: center; padding: 1.5rem; background-color: #d4edda; 
-                    border-radius: 10px; margin: 1rem 0; border-left: 5px solid #28a745;'>
-            <p style='font-size: 1.3rem; margin: 0; color: #155724;'><b>{st.session_state.cheers_message}</b></p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.session_state.cheers_message = None
-    
+                     
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
     st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
