@@ -428,20 +428,118 @@ def render_challenge(user_id):
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
+    # デバッグ情報（開発者用）
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+        st.write(f"**最終記録日:** {last_date}")
+        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        
+        if last_date:
+            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+            days_since_last = (datetime.date.today() - last_date_obj).days
+            st.write(f"**経過日数:** {days_since_last}日")
+            st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
+            
+            if days_since_last > MISS_DAYS_THRESHOLD:
+                st.warning(f"⚠️ {days_since_last}日経過しています（閾値: {MISS_DAYS_THRESHOLD}日）")
+                st.write("次回の画面更新でリセットされます")
+            else:
+                st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
+        
+        st.write("---")
+        st.write("**テスト用ボタン:**")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト"):
+                if logs:
+                    # 最新のログを削除
+                    tracker.delete_today_log(user_id)
+                    # 3日前の日付でログを追加
+                    three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                    dm.save_click_log(user_id, three_days_ago, 12)
+                    st.success("最終記録日を3日前に設定しました")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+        
+        with col2:
+            if st.button("🔄 強制リセット", help="手動でリセット"):
+                tracker.reset_logs(user_id)
+                st.success("リセットしました")
+                import time
+                time.sleep(1)
+                st.rerun()
+    
     # 2日以上記録がない場合のリセット判定
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
         
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            st.error(f'😢 {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットしました')
-            st.info("💪 大丈夫！また今日から始めましょう！")
+            # リセット処理
             tracker.reset_logs(user_id)
-            count = 0
-            last_date = None
-            import time
-            time.sleep(2)
-            st.rerun()
+            
+            # リセット画面を表示
+            st.markdown("""
+            <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); 
+                        border-radius: 20px; color: white; margin: 2rem 0;'>
+                <div style='font-size: 4rem;'>😢</div>
+                <h1 style='color: white; margin: 1rem 0;'>連続記録がリセットされました</h1>
+                <p style='font-size: 1.2rem; color: #f0f0f0;'>{MISS_DAYS_THRESHOLD}日以上記録がなかったため、カウントをリセットしました</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write("")
+            st.write("")
+            
+            st.markdown("### 💭 どうしますか？")
+            st.info("同じ習慣で再チャレンジすることも、新しい習慣に変更することもできます")
+            
+            st.write("")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                <div style='text-align: center; padding: 1rem; background-color: #e3f2fd; 
+                            border-radius: 10px; border: 2px solid #2196f3;'>
+                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>🔄</div>
+                    <p style='font-weight: bold; color: #1976d2; margin: 0;'>同じ習慣で再挑戦</p>
+                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>今の習慣を続ける</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
+                    st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
+                    import time
+                    time.sleep(1.5)
+                    st.rerun()
+            
+            with col2:
+                st.markdown("""
+                <div style='text-align: center; padding: 1rem; background-color: #fff3e0; 
+                            border-radius: 10px; border: 2px solid #ff9800;'>
+                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>✏️</div>
+                    <p style='font-weight: bold; color: #f57c00; margin: 0;'>習慣を変更する</p>
+                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>新しい習慣を設定</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button("新しい習慣を設定", use_container_width=True):
+                    dm.delete_user_habit(user_id)
+                    st.session_state.page = "settings"
+                    st.info("新しい習慣を設定してください")
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+            
+            st.write("")
+            st.write("")
+            st.markdown("---")
+            st.markdown("<p style='text-align: center; color: #999;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+            
+            # リセット画面を表示したら、以降の処理をスキップ
+            return
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
@@ -577,23 +675,6 @@ def render_challenge(user_id):
         </div>
         """, unsafe_allow_html=True)
         st.session_state.cheers_message = None
-    
-    st.write("")
-    st.markdown("---")
-    st.write("")
-    
-    # グラフ
-    st.markdown("### 📊 あなたの進捗")
-    render_progress_chart(logs)
-   
-     
-def render_history(user_id):
-    """過去の習慣の達成履歴を表示するページ"""
-    st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #666;'>これまでに達成した習慣の記録</p>", unsafe_allow_html=True)
-    
-    st.write("")
-    st.write("")
     
     history = dm.load_history(user_id)
    
