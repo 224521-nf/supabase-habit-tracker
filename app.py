@@ -676,6 +676,14 @@ def render_challenge(user_id):
         """, unsafe_allow_html=True)
         st.session_state.cheers_message = None
     
+def render_history(user_id):
+    """過去の習慣の達成履歴を表示するページ"""
+    st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>これまでに達成した習慣の記録</p>", unsafe_allow_html=True)
+    
+    st.write("")
+    st.write("")
+    
     history = dm.load_history(user_id)
    
     if not history:
