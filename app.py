@@ -479,10 +479,10 @@ def render_challenge(user_id):
             # リセット処理
             tracker.reset_logs(user_id)
 
-            st.markdown("### 習慣の連続日数が２日間連続で更新されなかったため、日数を０に初期化しました。")
-            st.write()
-            st.markdown("### 💭 どうしますか？")        
+            st.markdown("### 習慣の連続日数が２日間連続で更新されなかったため、日数を０に初期化しました。")   
             st.write("")
+            st.write("")
+            st.markdown("<p style='text-align: center; color: #999;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
             
             col1, col2 = st.columns(2)
             
@@ -501,11 +501,6 @@ def render_challenge(user_id):
                     import time
                     time.sleep(1)
                     st.rerun()
-            
-            st.write("")
-            st.write("")
-            st.markdown("---")
-            st.markdown("<p style='text-align: center; color: #999;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
             
             # リセット画面を表示したら、以降の処理をスキップ
             return
