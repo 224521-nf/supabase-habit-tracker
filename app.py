@@ -506,49 +506,43 @@ def render_challenge(user_id):
                 if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
                     # 現在のログを取得
                     all_logs = dm.load_click_logs(user_id)
-                    
+            
                     if all_logs:
-                        # ログを古い順に並び替え
+                    # ログを古い順に並び替え
                         all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                        
+                
                         # 履歴に保存
                         try:
                             history_record = {
-                                "user_id": user_id,
-                                "habit_name": habit["name"] + " (未完了)",
-                                "target_time": habit["target_time"],
-                                "archived_at": datetime.datetime.now().isoformat(),
-                                "total_days": len(all_logs_sorted),
-                                "log_summary": all_logs_sorted,
+                            "user_id": user_id,
+                            "habit_name": habit["name"] + " (未完了)",
+                            "target_time": habit["target_time"],
+                            "archived_at": datetime.datetime.now().isoformat(),
+                            "total_days": len(all_logs_sorted),
+                            "log_summary": all_logs_sorted,
                             }
                             dm.save_history(history_record)
                         except Exception as e:
                             st.warning(f"履歴の保存でエラーが発生しました: {e}")
-                    
-                    # 習慣とログを削除
-                    try:
-                        tracker.reset_logs(user_id)
-                        dm.delete_user_habit(user_id)
-                        
-                        # セッションステートをクリア（必要なものに絞る）
-                        keys_to_clear = [
-                            'reset_done', 'show_reset_screen', 'challenge_phase',
-                            'cheers_message', 'milestone_message', 'balloons_triggered'
-                        ]
-                        for key in keys_to_clear:
-                            if key in st.session_state:
-                                del st.session_state[key]
-                        
-                        # ページ遷移をセットして即座にリラン
-                        st.session_state.page = "settings"
-                        st.rerun() # ここで確実にリランさせる
-                        
-                    except Exception as e:
-                        st.error(f"削除エラー: {e}")
-                        # エラーが出てもページ遷移だけは試みる
-                        if st.button("強制的に設定画面へ"):
-                            st.session_state.page = "settings"
-                            st.rerun()
+            
+            # 習慣を削除
+            try:
+                dm.delete_user_habit(user_id)
+                
+                # セッションステートをクリア
+                st.session_state.pop('reset_screen_shown', None)
+                st.session_state.pop('challenge_phase', None)
+                st.session_state.pop('cheers_message', None)
+                st.session_state.pop('milestone_message', None)
+                st.session_state.pop('balloons_triggered', None)
+                
+                st.success("✅ 習慣を削除しました")
+                time.sleep(0.5)
+                # main()の強制送還ロジックに任せる
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"削除エラー: {e}")
             
             # リセット画面を表示したら、以降の処理をスキップ
             return
