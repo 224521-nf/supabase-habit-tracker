@@ -610,7 +610,7 @@ def render_challenge(user_id):
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("✅ 今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+            if st.button("今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
                 tracker.record_today(user_id)
                 
                 # 新しいカウント
