@@ -428,6 +428,7 @@ def render_challenge(user_id):
     if last_date and count > 0:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
+        st.write(f"DEBUG: 経過={days_since_last}, 閾値={MISS_DAYS_THRESHOLD}")
         
         if days_since_last > MISS_DAYS_THRESHOLD:
             # リセット画面の表示
