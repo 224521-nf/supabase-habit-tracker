@@ -425,12 +425,12 @@ def render_challenge(user_id):
     count, last_date = tracker.get_click_status(logs)
     
     # 3. 最優先：リセット判定（画面描画の前に実行）
-    if last_date and count > 0:
+    if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
         st.write(f"DEBUG: 経過={days_since_last}, 閾値={MISS_DAYS_THRESHOLD}")
         
-        if days_since_last > MISS_DAYS_THRESHOLD:
+        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
             # リセット画面の表示
             st.markdown(f"### 🎯 {habit['name']}")
             st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化する必要があります。")
@@ -443,52 +443,28 @@ def render_challenge(user_id):
                 if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
                     tracker.reset_logs(user_id)
                     st.success(f"💪 「{habit['name']}」で再チャレンジ開始！")
-                    try:
-                        send_line_notification_to_user(
-                            supabase,
-                            f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
-                            user_id
-                        )
-                    except:
-                        pass
-                    time.sleep(1)
                     st.rerun()
             
             with col2:
-                if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
-                    # 履歴保存
+                if st.button("新しい習慣を設定", use_container_width=True, key="reset_new_habit"):
+                    # 履歴保存と削除処理
                     all_logs = dm.load_click_logs(user_id)
                     if all_logs:
                         all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                        try:
-                            history_record = {
-                                "user_id": user_id,
-                                "habit_name": habit["name"] + " (未完了)",
-                                "target_time": habit["target_time"],
-                                "archived_at": datetime.datetime.now().isoformat(),
-                                "total_days": len(all_logs_sorted),
-                                "log_summary": all_logs_sorted,
-                            }
-                            dm.save_history(history_record)
-                        except Exception as e:
-                            st.warning(f"履歴の保存でエラーが発生しました: {e}")
-                    
-                    # 削除処理
-                    try:
-                        tracker.reset_logs(user_id)
-                        dm.delete_user_habit(user_id)
-                        # セッションクリア
-                        keys_to_clear = ['cheers_message', 'milestone_message', 'balloons_triggered', 'show_reset_screen']
-                        for key in keys_to_clear:
-                            st.session_state.pop(key, None)
-                        
-                        st.session_state.page = "settings"
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"削除エラー: {e}")
+                        dm.save_history({
+                            "user_id": user_id,
+                            "habit_name": habit["name"] + " (リセット)",
+                            "target_time": habit["target_time"],
+                            "archived_at": datetime.datetime.now().isoformat(),
+                            "total_days": len(all_logs_sorted),
+                            "log_summary": all_logs_sorted,
+                        })
+                    tracker.reset_logs(user_id)
+                    dm.delete_user_habit(user_id)
+                    st.session_state.page = "settings"
+                    st.rerun()
             
-            # リセット画面を表示した場合はここで終了（下の通常画面を出さない）
-            return
+            return # ここで関数を終了させる（超重要）
 
     # 4. 通常のメイン画面表示
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
