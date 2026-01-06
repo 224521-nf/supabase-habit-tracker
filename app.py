@@ -499,7 +499,7 @@ def render_challenge(user_id):
                     except:
                         pass
                     
-                    time.sleep(1.5)
+                    time.sleep(1)
                     st.rerun()
             
             with col2:
@@ -522,7 +522,6 @@ def render_challenge(user_id):
                                 "log_summary": all_logs_sorted,
                             }
                             dm.save_history(history_record)
-                            st.success("📝 現在の習慣を履歴に保存しました")
                         except Exception as e:
                             st.warning(f"履歴の保存でエラーが発生しました: {e}")
                     
@@ -534,15 +533,17 @@ def render_challenge(user_id):
                         st.error(f"削除エラー: {e}")
                         return
                     
-                    # セッションステートをクリア
-                    st.session_state.page = "settings"
+                  # セッションステートをクリア
+                    st.session_state.pop('reset_done', None)
+                    st.session_state.pop('show_reset_screen', None)
                     st.session_state.pop('challenge_phase', None)
                     st.session_state.pop('cheers_message', None)
                     st.session_state.pop('milestone_message', None)
                     st.session_state.pop('balloons_triggered', None)
                     
-                    st.info("✅ 新しい習慣を設定してください")
-                    time.sleep(1)
+                    # ページ遷移
+                    st.session_state.page = "settings"
+                    time.sleep(0.5)
                     st.rerun()
             
             # リセット画面を表示したら、以降の処理をスキップ
