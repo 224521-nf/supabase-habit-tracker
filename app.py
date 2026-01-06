@@ -435,7 +435,7 @@ def render_challenge(user_id):
     # ========================================================
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-        days_since_last = (datetime.date.today - last_date_obj).days
+        days_since_last = (datetime.date.today() - last_date_obj).days
 
         # もし2日（MISS_DAYS_THRESHOLD）より多く空いていたら
         # ボタンを押す前であっても強制的にフェーズを書き換える
