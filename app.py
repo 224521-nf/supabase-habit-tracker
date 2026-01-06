@@ -470,16 +470,7 @@ def render_challenge(user_id):
                 f" {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットする必要があります。\n\n"
             )
             
-            # LINE通知
-            try:
-                send_line_notification_to_user(
-                    supabase,
-                    f"⚠️ {MISS_DAYS_THRESHOLD}日間未記録です\n「{habit['name']}」\n\n連続日数がリセットされます。アプリで継続/変更を選択してください。",
-                    user_id
-                )
-            except:
-                pass
-               
+            st.rerun()   
     # ========================================
     # 通常のチャレンジ画面
     # ========================================
