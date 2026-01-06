@@ -479,7 +479,7 @@ def render_challenge(user_id):
             # リセット処理
             tracker.reset_logs(user_id)
 
-            st.markdown("### 習慣の連続日数が２日間連続で更新されなかったため、日数を０に初期化しました。")   
+            st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化しました。")   
             st.write("")
             st.markdown("<p color: #999;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
             st.write("")
