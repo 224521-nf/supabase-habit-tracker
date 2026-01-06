@@ -496,7 +496,29 @@ def render_challenge(user_id):
             
             with col2:
                 if st.button("新しい習慣を設定", use_container_width=True):
+                    #現在のログを出力
+                    all_logs = dm.load_click_logs(user_id)
+                    
+                    if all_logs:
+                        # ログを古い順に並び替え
+                        all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
+                        
+                        # 履歴に保存
+                        history_record = {
+                            "user_id": user_id,
+                            "habit_name": habit["name"] + " (未完了)",
+                            "target_time": habit["target_time"],
+                            "archived_at": datetime.datetime.now().isoformat(),
+                            "total_days": len(all_logs_sorted),
+                            "log_summary": all_logs_sorted,
+                        }
+                        dm.save_history(history_record)
+                        st.success("📝 現在の習慣を履歴に保存しました")
+                    
+                    #習慣とログを削除
+                    tracker.reset_logs(user_id)
                     dm.delete_user_habit(user_id)
+                    
                     st.session_state.page = "settings"
                     st.info("新しい習慣を設定してください")
                     import time
