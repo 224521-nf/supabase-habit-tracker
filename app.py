@@ -535,6 +535,7 @@ def render_challenge(user_id):
                             "log_summary": all_logs_sorted,
                         }
                         dm.save_history(history_record)
+                        st.success("📝 履歴に保存しました")
                     except Exception as e:
                         st.warning(f"履歴の保存でエラーが発生しました: {e}")
     
@@ -551,6 +552,7 @@ def render_challenge(user_id):
                     st.session_state.pop('milestone_message', None)
                     st.session_state.pop('balloons_triggered', None)
                 
+                    st.success("✅ 習慣を削除しました")
                     time.sleep(0.5)
                     # main()の強制送還ロジックに任せる
                     st.rerun()
