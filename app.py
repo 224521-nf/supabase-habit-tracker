@@ -419,13 +419,63 @@ def render_challenge(user_id):
             st.rerun()
         return
     
-    # ログを最初に取得
+    # ヘッダー
+    st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
+    
+    st.write("")
+    
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
-    # ========================================
-    # 最優先: リセット判定（画面表示前に実行）
-    # ========================================
+    # デバッグ情報（開発者用）
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+        st.write(f"**最終記録日:** {last_date}")
+        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        st.write(f"**show_reset_screen:** {st.session_state.get('show_reset_screen', False)}")
+        
+        if last_date:
+            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+            days_since_last = (datetime.date.today() - last_date_obj).days
+            st.write(f"**経過日数:** {days_since_last}日")
+            st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
+            st.write(f"**count:** {count}")
+            
+            if days_since_last > MISS_DAYS_THRESHOLD:
+                st.warning(f"⚠️ {days_since_last}日経過しています（閾値: {MISS_DAYS_THRESHOLD}日）")
+                st.write("リセット条件を満たしています")
+            else:
+                st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
+        
+        st.write("---")
+        st.write("**テスト用ボタン:**")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト"):
+                if logs:
+                    # 最新のログを削除
+                    tracker.delete_today_log(user_id)
+                    # 3日前の日付でログを追加
+                    three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                    dm.save_click_log(user_id, three_days_ago, 12)
+                    
+                    # フラグをクリアして、リセット判定を再実行
+                    st.session_state.pop('show_reset_screen', None)
+                    
+                    st.success("最終記録日を3日前に設定しました")
+                    time.sleep(1)
+                    st.rerun()
+        
+        with col2:
+            if st.button("🔄 強制リセット", help="手動でリセット"):
+                tracker.reset_logs(user_id)
+                st.session_state.pop('show_reset_screen', None)
+                st.success("リセットしました")
+                time.sleep(1)
+                st.rerun()
+    
+    # 2日以上記録がない場合のリセット判定
     should_show_reset = False
     
     if last_date and count > 0:
@@ -435,12 +485,8 @@ def render_challenge(user_id):
         if days_since_last > MISS_DAYS_THRESHOLD:
             should_show_reset = True
     
-    # リセット画面を表示するべき場合（ヘッダーより前に判定）
+    # リセット画面を表示するべき場合
     if should_show_reset:
-        # ヘッダー（リセット画面用）
-        st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.write("")
-        
         st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化する必要があります。")   
         st.write("")
         st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
@@ -489,7 +535,6 @@ def render_challenge(user_id):
                             "log_summary": all_logs_sorted,
                         }
                         dm.save_history(history_record)
-                        st.success("📝 履歴に保存しました")
                     except Exception as e:
                         st.warning(f"履歴の保存でエラーが発生しました: {e}")
     
@@ -506,7 +551,6 @@ def render_challenge(user_id):
                     st.session_state.pop('milestone_message', None)
                     st.session_state.pop('balloons_triggered', None)
                 
-                    st.success("✅ 習慣を削除しました")
                     time.sleep(0.5)
                     # main()の強制送還ロジックに任せる
                     st.rerun()
@@ -517,62 +561,7 @@ def render_challenge(user_id):
         # リセット画面を表示したら、以降の処理をスキップ
         return
 
-    # ========================================
-    # ここから通常の画面（リセット不要の場合のみ）
-    # ========================================
-    
-    # ヘッダー（通常画面用）
-    st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
-    
-    st.write("")
-    
-    # デバッグ情報（開発者用）
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
-        st.write(f"**最終記録日:** {last_date}")
-        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
-        st.write(f"**show_reset_screen:** {st.session_state.get('show_reset_screen', False)}")
-        
-        if last_date:
-            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-            days_since_last = (datetime.date.today() - last_date_obj).days
-            st.write(f"**経過日数:** {days_since_last}日")
-            st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
-            st.write(f"**count:** {count}")
-            
-            if days_since_last > MISS_DAYS_THRESHOLD:
-                st.warning(f"⚠️ {days_since_last}日経過しています（閾値: {MISS_DAYS_THRESHOLD}日）")
-                st.write("リセット条件を満たしています")
-            else:
-                st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
-        
-        st.write("---")
-        st.write("**テスト用ボタン:**")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト"):
-                if logs:
-                    # 最新のログを削除
-                    tracker.delete_today_log(user_id)
-                    # 3日前の日付でログを追加
-                    three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-                    dm.save_click_log(user_id, three_days_ago, 12)
-                    
-                    # フラグをクリアして、リセット判定を再実行
-                    st.session_state.pop('show_reset_screen', None)
-                    
-                    st.success("最終記録日を3日前に設定しました")
-                    time.sleep(1)
-                    st.rerun()
-        
-        with col2:
-            if st.button("🔄 強制リセット", help="手動でリセット"):
-                tracker.reset_logs(user_id)
-                st.session_state.pop('show_reset_screen', None)
-                st.success("リセットしました")
-                time.sleep(1)
-                st.rerun()
+    # ここから通常の画面（リセット不要の場合のみ表示される）
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
