@@ -156,3 +156,20 @@ class DataManagerSupabase:
         except Exception as e:
             print(f"Error saving history: {e}")
             return False
+    
+        # -------- habits --------
+
+    def delete_user_habit(self, user_id: str) -> bool:
+        """現在の習慣を削除"""
+        try:
+            res = (
+                self.supabase
+                .table("habits")
+                .delete()
+                .eq("user_id", user_id)
+                .execute()
+            )
+            return res is not None
+        except Exception as e:
+            print(f"Error deleting habit: {e}")
+            return False
