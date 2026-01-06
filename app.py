@@ -409,123 +409,41 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
  
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ（即時判定版）"""
+    """習慣に挑戦し、進捗を記録するページ（改善版）"""
     habit = dm.load_user_habit(user_id)
     
-    # 1. 習慣設定がない場合のガード
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
         if st.button("習慣を設定する", use_container_width=True):
             st.session_state.page = "settings"
             st.rerun()
         return
-
+    
     # ヘッダー
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
     
     st.write("")
     
-    # 2. データの読み込み
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
-
-    # ========================================================
-    # 3. 【重要】ページ表示の瞬間に「2日以上空いているか」をチェック
-    # ========================================================
+    
+    # 2日以上記録がない場合のリセット判定
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
-
-        # もし2日（MISS_DAYS_THRESHOLD）より多く空いていたら
-        # ボタンを押す前であっても強制的にフェーズを書き換える
+        
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            st.markdown("""
-             <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); 
-                        border-radius: 20px; color: white; margin: 2rem 0;'>
-                <div style='font-size: 4rem;'>😢</div>
-                <h1 style='color: white; margin: 1rem 0;'>連続記録がリセットされました</h1>
-                <p style='font-size: 1.2rem; color: #f0f0f0;'>{MISS_DAYS_THRESHOLD}日以上記録がなかったため、カウントをリセットしました</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.write("")
-            st.write("")
-            
-            st.markdown("### 💭 どうしますか？")
-            st.info("同じ習慣で再チャレンジすることも、新しい習慣に変更することもできます")
-            
-            st.write("")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("""
-                <div style='text-align: center; padding: 1rem; background-color: #e3f2fd; 
-                            border-radius: 10px; border: 2px solid #2196f3;'>
-                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>🔄</div>
-                    <p style='font-weight: bold; color: #1976d2; margin: 0;'>同じ習慣で再挑戦</p>
-                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>今の習慣を続ける</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
-                    # 再チャレンジの場合はログだけリセット
-                    tracker.reset_logs(user_id)
-                    st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
-                    import time
-                    time.sleep(1.5)
-                    st.rerun()
-            
-            with col2:
-                st.markdown("""
-                <div style='text-align: center; padding: 1rem; background-color: #fff3e0; 
-                            border-radius: 10px; border: 2px solid #ff9800;'>
-                    <div style='font-size: 2rem; margin-bottom: 0.5rem;'>✏️</div>
-                    <p style='font-weight: bold; color: #f57c00; margin: 0;'>習慣を変更する</p>
-                    <p style='font-size: 0.9rem; color: #666; margin-top: 0.5rem;'>現在の習慣を履歴に保存</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
-                    # 現在のログを取得（リセット前に）
-                    all_logs = dm.load_click_logs(user_id)
-                    
-                    if all_logs:
-                        # ログを古い順に並び替え
-                        all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                        
-                        # 履歴に保存
-                        history_record = {
-                            "user_id": user_id,
-                            "habit_name": habit["name"] + " (未完了)",
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
-                        }
-                        dm.save_history(history_record)
-                        st.success("📝 現在の習慣を履歴に保存しました")
-                    
-                    # 習慣とログを削除
-                    tracker.reset_logs(user_id)
-                    dm.delete_user_habit(user_id)
-                    
-                    st.session_state.page = "settings"
-                    st.info("新しい習慣を設定してください")
-                    import time
-                    time.sleep(1.5)
-                    st.rerun()
-            
-            st.write("")
-            st.write("")
-            st.markdown("---")
-            st.markdown("<p style='text-align: center; color: #999;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
-            
-            # リセット画面を表示したら、以降の処理をスキップ
-            return
+            st.error(f'😢 {MISS_DAYS_THRESHOLD}日以上記録がなかったため、連続日数をリセットしました')
+            st.info("💪 大丈夫！また今日から始めましょう！")
+            tracker.reset_logs(user_id)
+            count = 0
+            last_date = None
+            import time
+            time.sleep(2)
+            st.rerun()
     
-     # Session Stateの初期化
+    # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
         st.session_state.cheers_message = None
     
@@ -560,8 +478,8 @@ def render_challenge(user_id):
     
     st.write("")
     st.markdown("---")
-    st.write("")        
-           
+    st.write("")
+    
     # マイルストーンメッセージ
     if st.session_state.milestone_message:
         icon, title, message = st.session_state.milestone_message
