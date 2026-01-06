@@ -472,23 +472,32 @@ def render_challenge(user_id):
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
-        
+    
         if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-            # リセット処理
-            tracker.reset_logs(user_id)
-
+            # まだリセット画面を表示していない場合のみフラグを立てる
+            if not st.session_state.get('show_reset_screen', False):
+                st.session_state['show_reset_screen'] = True
+                # ログはまだ削除しない（ボタン押下時に削除）
+        
+            # リセット画面を表示
             st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化しました。")   
             st.write("")
             st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
             st.write("")
             st.write("")
-            
+        
             col1, col2 = st.columns(2)
-            
+        
             with col1:
                 if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
+                    # ここでログをリセット
+                    tracker.reset_logs(user_id)
+                
+                    # フラグをクリア
+                    st.session_state.pop('show_reset_screen', None)
+                
                     st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
-                    
+                
                     # LINE通知を送信
                     try:
                         send_line_notification_to_user(
@@ -498,52 +507,55 @@ def render_challenge(user_id):
                         )
                     except:
                         pass
-                    
+                
                     time.sleep(1)
                     st.rerun()
-            
+        
             with col2:
                 if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
-                    # 現在のログを取得
+                    # 現在のログを取得（削除前に取得！）
                     all_logs = dm.load_click_logs(user_id)
-            
+        
                     if all_logs:
-                    # ログを古い順に並び替え
+                        # ログを古い順に並び替え
                         all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                
+            
                         # 履歴に保存
                         try:
                             history_record = {
-                            "user_id": user_id,
-                            "habit_name": habit["name"] + " (未完了)",
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
+                                "user_id": user_id,
+                                "habit_name": habit["name"] + " (未完了)",
+                                "target_time": habit["target_time"],
+                                "archived_at": datetime.datetime.now().isoformat(),
+                                "total_days": len(all_logs_sorted),
+                                "log_summary": all_logs_sorted,
                             }
                             dm.save_history(history_record)
+                            st.success("📝 履歴に保存しました")
                         except Exception as e:
                             st.warning(f"履歴の保存でエラーが発生しました: {e}")
-            
-            # 習慣を削除
-            try:
-                dm.delete_user_habit(user_id)
-                
-                # セッションステートをクリア
-                st.session_state.pop('reset_screen_shown', None)
-                st.session_state.pop('challenge_phase', None)
-                st.session_state.pop('cheers_message', None)
-                st.session_state.pop('milestone_message', None)
-                st.session_state.pop('balloons_triggered', None)
-                
-                st.success("✅ 習慣を削除しました")
-                time.sleep(0.5)
-                # main()の強制送還ロジックに任せる
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"削除エラー: {e}")
-            
+        
+                    # 習慣とログを削除
+                    try:
+                        tracker.reset_logs(user_id)  # ここでログを削除
+                        dm.delete_user_habit(user_id)
+                    
+                        # セッションステートをクリア
+                        st.session_state.pop('show_reset_screen', None)
+                        st.session_state.pop('reset_screen_shown', None)
+                        st.session_state.pop('challenge_phase', None)
+                        st.session_state.pop('cheers_message', None)
+                        st.session_state.pop('milestone_message', None)
+                        st.session_state.pop('balloons_triggered', None)
+                    
+                        st.success("✅ 習慣を削除しました")
+                        time.sleep(0.5)
+                        # main()の強制送還ロジックに任せる
+                        st.rerun()
+                    
+                    except Exception as e:
+                        st.error(f"削除エラー: {e}")
+        
         # リセット画面を表示したら、以降の処理をスキップ
         return
     
