@@ -495,11 +495,8 @@ def render_challenge(user_id):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric(
-           
-            st.metric(  "🔥 連続記録",f"{count}日")
-        )
-
+        st.metric("🔥 連続記録",f"{count}日")
+        
     with col2:
         display_date = last_date if last_date else "---"
         st.metric("📅 最終記録日", display_date)
