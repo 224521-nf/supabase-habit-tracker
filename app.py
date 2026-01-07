@@ -496,9 +496,8 @@ def render_challenge(user_id):
 
     with col1:
         st.metric(
-            "🔥 連続記録", 
-            f"{count}日",
-            delta=None if count == 0 else "+1" if tracker.can_click_today(last_date) else "達成済"
+           
+            st.metric(  "🔥 連続記録",f"{count}日")
         )
 
     with col2:
