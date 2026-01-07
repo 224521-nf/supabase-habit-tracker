@@ -428,17 +428,13 @@ def render_challenge(user_id):
     # ========================================
     should_show_reset = False
     
-    if last_date:  # count > 0 の条件を削除
+    if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
-        
-        # デバッグ用：経過日数を確認
-        print(f"DEBUG: last_date={last_date}, days_since_last={days_since_last}, count={count}")
         
         # 2日以上経過している場合（今日が3日目以降）
         if days_since_last > MISS_DAYS_THRESHOLD:
             should_show_reset = True
-            print(f"DEBUG: リセット条件を満たしています")
     
     # リセット画面を表示するべき場合（ヘッダーより前に判定）
     if should_show_reset:
@@ -500,7 +496,7 @@ def render_challenge(user_id):
     
                 # 習慣とログを削除
                 try:
-                    tracker.reset_logs(user_id)  # ここでログを削除
+                    tracker.reset_logs(user_id)
                     dm.delete_user_habit(user_id)
                 
                     # セッションステートをクリア
@@ -513,7 +509,6 @@ def render_challenge(user_id):
                 
                     st.success("✅ 習慣を削除しました")
                     time.sleep(0.5)
-                    # main()の強制送還ロジックに任せる
                     st.rerun()
                 
                 except Exception as e:
@@ -532,8 +527,8 @@ def render_challenge(user_id):
     
     st.write("")
     
-    # デバッグ情報（開発者用）- 拡張版
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=True):  # デフォルトで開く
+    # デバッグ情報（開発者用）
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):  # 本番環境では閉じた状態
         st.write(f"**最終記録日:** {last_date}")
         st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
         st.write(f"**連続日数(count):** {count}")
@@ -546,7 +541,7 @@ def render_challenge(user_id):
             st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD})")
             
             if days_since_last > MISS_DAYS_THRESHOLD:
-                st.error(f"⚠️ リセット条件を満たしています！なぜこの画面が表示されているのか？")
+                st.error(f"⚠️ リセット条件を満たしています！")
             else:
                 st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
         
@@ -556,7 +551,7 @@ def render_challenge(user_id):
         
         if logs:
             st.write("**最近のログ:**")
-            for log in logs[-5:]:  # 最新5件
+            for log in logs[:5]:  # 最新5件（logsは既に新しい順）
                 st.write(f"  - {log}")
         
         st.write("---")
@@ -571,14 +566,14 @@ def render_challenge(user_id):
                 three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
                 dm.save_click_log(user_id, three_days_ago, 12)
                 
-                st.success("最終記録日を3日前に設定しました")
+                st.success(f"最終記録日を3日前（{three_days_ago}）に設定しました")
                 time.sleep(1)
                 st.rerun()
         
         with col2:
             if st.button("🔄 強制リセット", help="手動でリセット"):
                 tracker.reset_logs(user_id)
-                st.success("リセットしました")
+                st.success("全ログをリセットしました")
                 time.sleep(1)
                 st.rerun()
     
