@@ -527,19 +527,18 @@ def render_challenge(user_id):
     
     st.write("")
     
-    # デバッグ情報（開発者用）
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):  # 本番環境では閉じた状態
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
         st.write(f"**最終記録日:** {last_date}")
         st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
         st.write(f"**連続日数(count):** {count}")
-        
+    
         if last_date:
             last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
             days_since_last = (datetime.date.today() - last_date_obj).days
             st.write(f"**経過日数:** {days_since_last}日")
             st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
             st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD})")
-            
+        
             if days_since_last > MISS_DAYS_THRESHOLD:
                 st.error(f"⚠️ リセット条件を満たしています！")
             else:
@@ -551,7 +550,7 @@ def render_challenge(user_id):
         
         if logs:
             st.write("**最近のログ:**")
-            for log in logs[:5]:  # 最新5件（logsは既に新しい順）
+            for log in logs[:5]:
                 st.write(f"  - {log}")
         
         st.write("---")
@@ -559,23 +558,55 @@ def render_challenge(user_id):
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト"):
-                # 全ログを削除
-                tracker.reset_logs(user_id)
-                # 3日前の日付でログを追加
-                three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-                dm.save_click_log(user_id, three_days_ago, 12)
-                
-                st.success(f"最終記録日を3日前（{three_days_ago}）に設定しました")
-                time.sleep(1)
-                st.rerun()
+            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト", key="test_3days"):
+                try:
+                    # ステップ1: 全ログを削除
+                    tracker.reset_logs(user_id)
+                    
+                    # ステップ2: Supabaseに反映されるまで少し待つ
+                    time.sleep(0.3)
+                    
+                    # ステップ3: 3日前の日付でログを1件追加
+                    three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                    dm.save_click_log(user_id, three_days_ago, 12)
+                    
+                    # ステップ4: Supabaseに反映されるまで待つ
+                    time.sleep(0.3)
+                    
+                    # ステップ5: キャッシュをクリア（もしあれば）
+                    if hasattr(st, 'cache_data'):
+                        st.cache_data.clear()
+                    if hasattr(st, 'cache_resource'):
+                        st.cache_resource.clear()
+                    
+                    st.success(f"✅ 最終記録日を3日前（{three_days_ago}）に設定しました")
+                    st.info("ページをリロードします...")
+                    time.sleep(0.5)
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"エラー: {e}")
         
         with col2:
-            if st.button("🔄 強制リセット", help="手動でリセット"):
-                tracker.reset_logs(user_id)
-                st.success("全ログをリセットしました")
-                time.sleep(1)
-                st.rerun()
+            if st.button("🔄 強制リセット", help="手動でリセット", key="test_reset"):
+                try:
+                    tracker.reset_logs(user_id)
+                    
+                    # Supabaseに反映されるまで待つ
+                    time.sleep(0.3)
+                    
+                    # キャッシュをクリア
+                    if hasattr(st, 'cache_data'):
+                        st.cache_data.clear()
+                    if hasattr(st, 'cache_resource'):
+                        st.cache_resource.clear()
+                    
+                    st.success("✅ 全ログをリセットしました")
+                    time.sleep(0.5)
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"エラー: {e}")
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
