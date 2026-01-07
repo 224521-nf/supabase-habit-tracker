@@ -14,10 +14,24 @@ class HabitTracker:
  
     def get_click_status(self, logs: list):
         """現在のクリック状況（連続日数、最新日）を取得する"""
+        if not logs:
+            return 0, None
+            
+        last_click_date = logs[0]["log_date"]
+        
+        # --- 追加: 放置日数のチェック ---
+        last_date_obj = datetime.datetime.strptime(last_click_date, DATE_FORMAT).date()
+        days_since_last = (datetime.date.today() - last_date_obj).days
+        
+        # もし閾値を超えていたら、有効なログは「0」として返す
+        # ※ main.py 側でリセット画面を出すために、ここでは判定だけ行う
+        from constants import MISS_DAYS_THRESHOLD
+        if days_since_last > MISS_DAYS_THRESHOLD:
+            # ログはあるが、期限切れなのでカウントは0とみなす
+            return 0, last_click_date
+
         total_click_count = len(logs)
-        last_click_date = logs[0]["log_date"] if logs else None
         return total_click_count, last_click_date
- 
     def is_completed(self, count: int) -> bool:
         """チャレンジ完了（MAX_CHALLENGE_DAYSに達したか）を判定する"""
         return count >= MAX_CHALLENGE_DAYS
