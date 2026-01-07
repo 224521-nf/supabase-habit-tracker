@@ -423,7 +423,6 @@ def render_challenge(user_id):
         return
     
     habit = dm.load_user_habit(user_id)
-    
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
         if st.button("習慣を設定する", use_container_width=True):
@@ -440,6 +439,7 @@ def render_challenge(user_id):
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
+    
     # デバッグ情報（開発者用）
     with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
         st.write(f"**最終記録日:** {last_date}")
@@ -452,7 +452,7 @@ def render_challenge(user_id):
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
 
-        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
+        if days_since_last > MISS_DAYS_THRESHOLD :
             ### 修正: UIをわかりやすく分離
             st.error("### ⚠️ 習慣が途切れてしまいました")
             st.markdown(f"最後の記録から **{days_since_last}日** 経過したため、日数がリセットされます。")
@@ -473,6 +473,7 @@ def render_challenge(user_id):
                     dm.delete_user_habit(user_id)
                     st.session_state.page = "settings"
                     st.rerun()
+                    s
             return # リセットが必要な時はここで止める
 
     # Session Stateの初期化
