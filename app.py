@@ -410,6 +410,10 @@ def render_settings(user_id):
  
 def render_challenge(user_id):
     """習慣に挑戦し、進捗を記録するページ（改善版）"""
+     # デバッグ: この関数が呼ばれたことをログに記録
+    import sys
+    print(f"[DEBUG] render_challenge called at {datetime.datetime.now()}", file=sys.stderr)
+    
     habit = dm.load_user_habit(user_id)
     
     if not habit or not habit.get("name"):
