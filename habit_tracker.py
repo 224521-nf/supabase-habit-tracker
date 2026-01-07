@@ -8,35 +8,29 @@ class HabitTracker:
 
     # ------------------ ログの取得と状態 ------------------
 
-    def get_logs(self, user_id):
-        """ユーザーの進捗ログを取得する (最新順)"""
-        return self.data_manager.load_click_logs(user_id)
-
     def get_click_status(self, logs: list):
-        """現在のクリック状況（連続日数、最新日）を取得する"""
         if not logs:
             return 0, None
-        
-        # 最新のログ日付を取得
-        last_click_date = logs[0]["log_date"]
-        
-        # ログを日付順にソート（新しい順）
+
         sorted_logs = sorted(logs, key=lambda x: x['log_date'], reverse=True)
-        
-        # 連続日数をカウント
+        last_click_date = sorted_logs[0]["log_date"]
+
         consecutive_count = 0
-        expected_date = datetime.datetime.strptime(last_click_date, DATE_FORMAT).date()
-        
+        expected_date = datetime.datetime.strptime(
+            last_click_date, DATE_FORMAT
+        ).date()
+
         for log in sorted_logs:
-            log_date = datetime.datetime.strptime(log['log_date'], DATE_FORMAT).date()
-            
+            log_date = datetime.datetime.strptime(
+                log["log_date"], DATE_FORMAT
+            ).date()
+
             if log_date == expected_date:
                 consecutive_count += 1
-                expected_date = log_date - datetime.timedelta(days=1)
+                expected_date -= datetime.timedelta(days=1)
             else:
-                # 日付が飛んでいる場合は連続が途切れている
                 break
-        
+
         return consecutive_count, last_click_date
 
     def is_completed(self, count: int) -> bool:
@@ -71,9 +65,12 @@ class HabitTracker:
 
     def archive(self, user_id: str, habit_name: str, target_time: str):
         """チャレンジを完了し、習慣履歴テーブルに保存する"""
-        logs = self.get_logs(user_id)
-        logs.reverse()
-       
+
+        logs = sorted(
+            self.get_logs(user_id),
+            key=lambda x: x["log_date"]
+        )
+
         history_record = {
             "user_id": user_id,
             "habit_name": habit_name,
@@ -85,18 +82,30 @@ class HabitTracker:
 
         self.data_manager.save_history(history_record)
 
+
     def reset_logs(self, user_id: str):
         """progress_logsテーブルの記録をリセットする"""
         self.data_manager.reset_click_logs(user_id)
     
-    def needs_reset(self, logs: list, threshold: int) -> bool:
-        """リセットが必要な状態（記録が途切れている）かを判定する"""
+    def should_reset(self, logs, miss_days_threshold: int) -> bool:
+        """
+        未達日数が threshold を超えた場合にリセットすべきか判定する
+        例:
+          threshold=2 → 2日未達まではOK、3日目でTrue
+        """
         if not logs:
             return False
+
+        latest = max(logs, key=lambda x: x["log_date"])
+        last_date = datetime.datetime.strptime(
+            latest["log_date"], DATE_FORMAT
+        ).date()
+
+        days_since_last = (datetime.date.today() - last_date).days
+
+        # 2日未達 → 3日目にリセット
+        return days_since_last >= miss_days_threshold + 1
     
-        # get_click_statusと同じく最新のログを取得
-        last_date_str = logs[0]["log_date"]
-        last_date_obj = datetime.datetime.strptime(last_date_str, DATE_FORMAT).date()
-        days_since_last = (datetime.date.today() - last_date_obj).days
-    
-        return days_since_last > threshold
+    def get_logs(self, user_id):
+        """ユーザーの進捗ログを取得する"""
+        return self.data_manager.load_click_logs(user_id)
