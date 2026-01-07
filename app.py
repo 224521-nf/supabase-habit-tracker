@@ -428,12 +428,17 @@ def render_challenge(user_id):
     # ========================================
     should_show_reset = False
     
-    if last_date and count > 0:
+    if last_date:  # count > 0 の条件を削除
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
         
+        # デバッグ用：経過日数を確認
+        print(f"DEBUG: last_date={last_date}, days_since_last={days_since_last}, count={count}")
+        
+        # 2日以上経過している場合（今日が3日目以降）
         if days_since_last > MISS_DAYS_THRESHOLD:
             should_show_reset = True
+            print(f"DEBUG: リセット条件を満たしています")
     
     # リセット画面を表示するべき場合（ヘッダーより前に判定）
     if should_show_reset:
@@ -527,24 +532,32 @@ def render_challenge(user_id):
     
     st.write("")
     
-    # デバッグ情報（開発者用）
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+    # デバッグ情報（開発者用）- 拡張版
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=True):  # デフォルトで開く
         st.write(f"**最終記録日:** {last_date}")
         st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
-        st.write(f"**show_reset_screen:** {st.session_state.get('show_reset_screen', False)}")
+        st.write(f"**連続日数(count):** {count}")
         
         if last_date:
             last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
             days_since_last = (datetime.date.today() - last_date_obj).days
             st.write(f"**経過日数:** {days_since_last}日")
             st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
-            st.write(f"**count:** {count}")
+            st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD})")
             
             if days_since_last > MISS_DAYS_THRESHOLD:
-                st.warning(f"⚠️ {days_since_last}日経過しています（閾値: {MISS_DAYS_THRESHOLD}日）")
-                st.write("リセット条件を満たしています")
+                st.error(f"⚠️ リセット条件を満たしています！なぜこの画面が表示されているのか？")
             else:
                 st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
+        
+        st.write("---")
+        st.write(f"**can_click_today:** {tracker.can_click_today(last_date)}")
+        st.write(f"**全ログ数:** {len(logs)}")
+        
+        if logs:
+            st.write("**最近のログ:**")
+            for log in logs[-5:]:  # 最新5件
+                st.write(f"  - {log}")
         
         st.write("---")
         st.write("**テスト用ボタン:**")
@@ -552,24 +565,19 @@ def render_challenge(user_id):
         col1, col2 = st.columns(2)
         with col1:
             if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト"):
-                if logs:
-                    # 最新のログを削除
-                    tracker.delete_today_log(user_id)
-                    # 3日前の日付でログを追加
-                    three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-                    dm.save_click_log(user_id, three_days_ago, 12)
-                    
-                    # フラグをクリアして、リセット判定を再実行
-                    st.session_state.pop('show_reset_screen', None)
-                    
-                    st.success("最終記録日を3日前に設定しました")
-                    time.sleep(1)
-                    st.rerun()
+                # 全ログを削除
+                tracker.reset_logs(user_id)
+                # 3日前の日付でログを追加
+                three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                dm.save_click_log(user_id, three_days_ago, 12)
+                
+                st.success("最終記録日を3日前に設定しました")
+                time.sleep(1)
+                st.rerun()
         
         with col2:
             if st.button("🔄 強制リセット", help="手動でリセット"):
                 tracker.reset_logs(user_id)
-                st.session_state.pop('show_reset_screen', None)
                 st.success("リセットしました")
                 time.sleep(1)
                 st.rerun()
