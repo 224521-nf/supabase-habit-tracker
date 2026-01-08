@@ -448,7 +448,7 @@ def render_challenge(user_id):
         st.markdown(
             
             """
-            <p style="font-size: 20px;">
+            <p style="font-size: 25px;">
                 習慣の連続日数が2日間更新されなかったため、0に初期化されました。
             </p>
             """,
@@ -456,7 +456,7 @@ def render_challenge(user_id):
             )
            
         st.write("")
-        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 22px;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 22px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
         st.write("")
         
