@@ -450,7 +450,7 @@ def render_challenge(user_id):
             """
             <p style="text-align: center; font-size: 33px;">
                 習慣の連続日数が2日間更新されなかったため、継続日数が0に初期化されました。
-                ここで諦めずに習慣を続けてみませんか？小さな積み重ねは必ずあなたの力になります！
+                ここで諦めずに習慣を続けてみませんか？小さな積み重ねは必ずあなたの成長につながります！
             </p>
             """,
             unsafe_allow_html=True
