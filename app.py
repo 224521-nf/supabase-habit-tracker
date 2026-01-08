@@ -463,11 +463,11 @@ def render_challenge(user_id):
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("もう一度再チャレンジする", use_container_width=True, type="primary"):
+            if st.button("再チャレンジする", use_container_width=True, type="primary"):
                 tracker.reset_logs(user_id)
                 st.rerun()
         with col2:
-            if st.button("気持ちを切り替えて新しい習慣", use_container_width=True):
+            if st.button("気持ちを切り替えて新しい習慣に挑戦する", use_container_width=True):
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
