@@ -517,10 +517,6 @@ def render_history(user_id):
         st.write("30日間習慣を継続すると、ここに記録されます！")
         return
     
-    # 達成数の表示
-    st.metric("🎯 達成した習慣の数", f"{len(history)}個")
-    st.write("")
-    
     for i, r in enumerate(history, 1):
         archive_date = datetime.datetime.fromisoformat(r["archived_at"]).strftime("%Y年%m月%d日")
         log_summary = r.get("log_summary", [])
