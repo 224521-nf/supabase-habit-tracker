@@ -534,12 +534,12 @@ def render_challenge(user_id):
     st.write("")
     
     # デバッグ情報（開発者用）
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
-        st.write(f"**最終記録日:** {last_date}")
-        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
-        st.write(f"**連続日数(count):** {count}")
-    
-    if last_date:
+with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+    st.write(f"**最終記録日:** {last_date}")
+    st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+    st.write(f"**連続日数(count):** {count}")
+
+    if last_date:  # ← このif文をwith st.expander内に入れる
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
         st.write(f"**経過日数:** {days_since_last}日")
@@ -554,14 +554,14 @@ def render_challenge(user_id):
                 st.info(f"理由: 経過日数が閾値以下（あと{MISS_DAYS_THRESHOLD - days_since_last + 1}日）")
             if count == 0:
                 st.info("理由: 連続日数が0")
-    
+
     st.write("---")
     st.write(f"**全ログ数:** {len(logs)}")
     if logs:
         st.write("**全てのログ:**")
         for i, log in enumerate(logs, 1):
             st.write(f"  {i}. {log}")
-    
+
     st.write("---")
     st.write("**テスト用ボタン:**")
     st.warning("⚠️ ボタンを押した後、ページがリロードされます")
@@ -575,7 +575,7 @@ def render_challenge(user_id):
                     st.write("ステップ1: 全ログを削除中...")
                     delete_result = tracker.reset_logs(user_id)
                     st.write(f"削除結果: {delete_result}")
-                    time.sleep(1.0)  # 待機時間を延長
+                    time.sleep(1.0)
                     
                     # ステップ2: 削除を確認
                     check_logs = dm.load_click_logs(user_id)
@@ -607,7 +607,7 @@ def render_challenge(user_id):
                     st.error(f"❌ エラー: {e}")
                     import traceback
                     st.code(traceback.format_exc())
-    
+
     with col2:
         if st.button("🔄 強制リセット", help="手動でリセット", key="test_btn_reset"):
             with st.spinner("処理中..."):
