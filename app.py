@@ -349,7 +349,7 @@ def render_settings(user_id):
         
         st.info(f"**習慣: {name}**")
         
-        st.info(f"**時刻: {time_input.strftime('%H:%M')}**")
+        st.info(f"**開始時刻: {time_input.strftime('%H:%M')}**")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -498,12 +498,12 @@ def render_challenge(user_id):
     else:
         st.success("✅ 今日は既に記録済みです！")
 
-    # 取り消しボタン
-    st.write("")
-    with st.expander("記録を取り消す"):
-        if st.button("直前の記録を削除"):
-            tracker.delete_today_log(user_id)
-            st.rerun()
+        # 取り消しボタン
+        st.write("")
+        with st.expander("記録を取り消す"):
+            if st.button("直前の記録を削除"):
+                tracker.delete_today_log(user_id)
+                st.rerun()
             
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
