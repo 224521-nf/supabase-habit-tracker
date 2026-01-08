@@ -403,39 +403,38 @@ def render_challenge(user_id):
     # 判定の直前に持ってくることで、DBの最新状態を反映させます
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
-    
-    # 今日の日付
     today_obj = datetime.date.today()
-    past_logs = [l for l in logs if datetime.datetime.strptime(l['log_date'], DATE_FORMAT).date() < today_obj]
     
     # ========================================
     # 最優先: リセット判定（この判定より上に画面表示コードを書かない）
     # ========================================
     should_show_reset = False
     
-   # 判定用の「真の最終記録日」を past_logs から取得
-    if past_logs:
-        # 過去ログの中で最新の日付
-        actual_last_date = past_logs[0]['log_date']
-        actual_last_date_obj = datetime.datetime.strptime(actual_last_date, DATE_FORMAT).date()
+   # 「今日まだ記録していない」場合のみ、過去の放置をチェックする
+    if tracker.can_click_today(last_date):
+        # 今日より前のログのみを抽出
+        past_logs = [l for l in logs if datetime.datetime.strptime(l['log_date'], DATE_FORMAT).date() < today_obj]
         
-        # 今日との差を計算
-        days_since = (today_obj - actual_last_date_obj).days
-        
-        # 今日まだ記録していない、かつ過去の最終記録から閾値を超えていたらリセット
-        # (既に今日記録している場合は、その時点で継続成功なのでリセットしない)
-        if not tracker.can_click_today(last_date):
-            # 今日記録済みならセーフ
-            pass
-        elif days_since > MISS_DAYS_THRESHOLD:
-            should_show_reset = True
-    elif not last_date:  # 追加：過去ログもなく、今日の日付もない＝完全未記録
-        created_at_raw = habit.get("created_at")
-        if created_at_raw:
-            c_date_str = str(created_at_raw)[:10]
-            created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
-            if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
+        if past_logs:
+            # 過去ログの中の最新日
+            actual_last_date = past_logs[0]['log_date']
+            actual_last_date_obj = datetime.datetime.strptime(actual_last_date, DATE_FORMAT).date()
+            days_since = (today_obj - actual_last_date_obj).days
+            
+            # 閾値（2日）を超えて空いていたらリセット対象
+            if days_since > MISS_DAYS_THRESHOLD:
                 should_show_reset = True
+        else:
+            # ログが1件もない場合は作成日と比較（初心者救済用）
+            created_at_raw = habit.get("created_at")
+            if created_at_raw:
+                try:
+                    c_date_str = str(created_at_raw)[:10]
+                    created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
+                    if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
+                        should_show_reset = True
+                except:
+                    pass
 
     # --- リセット画面の表示（条件合致なら即 return） ---
     if should_show_reset:
