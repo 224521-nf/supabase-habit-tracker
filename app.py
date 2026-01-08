@@ -387,10 +387,10 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
 
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ（自動遷移強化版）"""
+    """習慣に挑戦し、進捗を記録するページ"""
     import time
-    
-    # 1. 習慣情報の取得
+
+    # 1. データのロード
     habit = dm.load_user_habit(user_id)
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
@@ -399,47 +399,57 @@ def render_challenge(user_id):
             st.rerun()
         return
 
-    # 2. 【最重要】最新のログをここで必ず取得する
-    # 判定の直前に持ってくることで、DBの最新状態を反映させます
+    # 2. ログの取得
     logs = tracker.get_logs(user_id)
+    # count, last_date は表示用に使用
     count, last_date = tracker.get_click_status(logs)
     today_obj = datetime.date.today()
     
     # ========================================
-    # 最優先: リセット判定（この判定より上に画面表示コードを書かない）
+    # 最優先: リセット判定（厳格モード）
     # ========================================
     should_show_reset = False
     
-   # 「今日まだ記録していない」場合のみ、過去の放置をチェックする
-    if tracker.can_click_today(last_date):
-        # 今日より前のログのみを抽出
-        past_logs = [l for l in logs if datetime.datetime.strptime(l['log_date'], DATE_FORMAT).date() < today_obj]
-        
-        if past_logs:
-            # 過去ログの中の最新日
-            actual_last_date = past_logs[0]['log_date']
-            actual_last_date_obj = datetime.datetime.strptime(actual_last_date, DATE_FORMAT).date()
-            days_since = (today_obj - actual_last_date_obj).days
-            
-            # 閾値（2日）を超えて空いていたらリセット対象
-            if days_since > MISS_DAYS_THRESHOLD:
-                should_show_reset = True
-        else:
-            # ログが1件もない場合は作成日と比較（初心者救済用）
-            created_at_raw = habit.get("created_at")
-            if created_at_raw:
-                try:
-                    c_date_str = str(created_at_raw)[:10]
-                    created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
-                    if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
-                        should_show_reset = True
-                except:
-                    pass
+    # ログを日付順（新しい順）に並べる
+    sorted_logs = sorted(
+        logs, 
+        key=lambda x: datetime.datetime.strptime(x['log_date'], DATE_FORMAT).date(), 
+        reverse=True
+    )
 
-    # --- リセット画面の表示（条件合致なら即 return） ---
+    if sorted_logs:
+        # 最新のログ（今日かもしれないし、過去かもしれない）
+        latest_log_date = datetime.datetime.strptime(sorted_logs[0]['log_date'], DATE_FORMAT).date()
+        
+        # もし最新のログが「今日」なら、その「1つ前のログ」との差を見る
+        if latest_log_date == today_obj:
+            if len(sorted_logs) > 1:
+                # 2番目に新しいログ
+                prev_log_date = datetime.datetime.strptime(sorted_logs[1]['log_date'], DATE_FORMAT).date()
+                # 今日(1/8) と 2番目(1/5) の差が閾値を超えていたらアウト
+                if (today_obj - prev_log_date).days > MISS_DAYS_THRESHOLD:
+                    should_show_reset = True
+        else:
+            # 最新のログが「今日より前」なら、今日との差を見る
+            if (today_obj - latest_log_date).days > MISS_DAYS_THRESHOLD:
+                should_show_reset = True
+    else:
+        # ログがない場合は習慣作成日と比較
+        created_at_raw = habit.get("created_at")
+        if created_at_raw:
+            try:
+                c_date_str = str(created_at_raw)[:10]
+                c_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
+                if (today_obj - c_date_obj).days > MISS_DAYS_THRESHOLD:
+                    should_show_reset = True
+            except:
+                pass
+
+    # --- リセット画面の表示 ---
     if should_show_reset:
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.error("### 2日間更新がなかったため、日数がリセットされました")
+        st.error("### 連続記録が途切れていました")
+        st.info("前回の記録から間が空きすぎたため、リセットが必要です。")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -452,34 +462,30 @@ def render_challenge(user_id):
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
                 st.rerun()
-        return  # ここで処理を終了。これより下の「通常のメイン画面」は描画されない。
+        return
+
     # ========================================
-    # 通常のメイン画面（ここから下はリセット不要な時だけ動く）
+    # メイン画面（ここから下はリセット不要な時のみ）
     # ========================================
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
 
-    # デバッグ情報（アコーディオン）
+    # デバッグ情報
     with st.expander("🔧 開発者用デバッグ情報", expanded=False):
-        st.write(f"最終記録日: {last_date}")
-        st.write(f"全ログ数: {len(logs)}")
-        if last_date:
-            diff = (today_obj - datetime.datetime.strptime(last_date, DATE_FORMAT).date()).days
-            st.write(f"経過日数: {diff}日 (リセット閾値: {MISS_DAYS_THRESHOLD}日)")
+        st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
+        st.write(f"全ログ: {logs}")
         
-        st.write("---")
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            if st.button("🧪 最終記録日を3日前に変更", key="btn_test_3days"):
-                tracker.reset_logs(user_id) # 今日のログも含め全消去
-                time.sleep(0.5)
-                target_date = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-                dm.save_click_log(user_id, target_date, 12)
-                st.rerun()
-        with col_t2:
-            if st.button("🔄 強制リセット(ログ全消去)", key="btn_test_clear"):
-                tracker.reset_logs(user_id)
-                st.rerun()
+        if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
+            # 今日のログがある場合はそれを保持し、他を消して3日前を入れる
+            has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
+            tracker.reset_logs(user_id)
+            time.sleep(0.5)
+            # 3日前のログを入れる
+            three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+            dm.save_click_log(user_id, three_days_ago, 12)
+            # 今日記録済みだったなら、今日の分も入れ直す
+            if has_today:
+                dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
+            st.rerun()
 
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
@@ -488,7 +494,7 @@ def render_challenge(user_id):
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
 
-    # 記録ボタンエリア
+    # 記録ボタン
     st.write("---")
     if tracker.can_click_today(last_date):
         if st.button("今日の習慣を記録する", use_container_width=True, type="primary"):
