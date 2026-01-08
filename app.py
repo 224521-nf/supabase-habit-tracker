@@ -387,11 +387,10 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
 
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ"""
-    import sys
+    """習慣に挑戦し、進捗を記録するページ（自動遷移強化版）"""
     import time
     
-    # 1. データのロード
+    # 1. 習慣情報の取得
     habit = dm.load_user_habit(user_id)
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
@@ -400,24 +399,28 @@ def render_challenge(user_id):
             st.rerun()
         return
 
-    # 2. ログとステータスの取得
+    # 2. 【最重要】最新のログをここで必ず取得する
+    # 判定の直前に持ってくることで、DBの最新状態を反映させます
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
+    # 今日の日付
+    today_obj = datetime.date.today()
+
     # ========================================
-    # 最優先: リセット判定（日付ベースで厳密に）
+    # 最優先: リセット判定（この判定より上に画面表示コードを書かない）
     # ========================================
     should_show_reset = False
-    today_obj = datetime.date.today()
     
     if last_date:
-        # 最終記録日がある場合
+        # 記録がある場合：最終記録日との比較
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since = (today_obj - last_date_obj).days
         if days_since > MISS_DAYS_THRESHOLD:
             should_show_reset = True
+            
     else:
-        # 記録がない場合は習慣作成日（created_at）を使用
+        # 記録がない場合：作成日との比較
         created_at_raw = habit.get("created_at")
         if created_at_raw:
             try:
@@ -428,11 +431,10 @@ def render_challenge(user_id):
             except:
                 pass
 
-    # --- リセット画面の表示 ---
+    # --- リセット画面の表示（条件合致なら即 return） ---
     if should_show_reset:
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.error("### 連続記録が途切れてしまいました")
-        st.info(f"最終記録日（または開始日）から {MISS_DAYS_THRESHOLD + 1} 日以上経過したため、リセットが必要です。")
+        st.error("### 2日間更新がなかったため、日数がリセットされました")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -445,8 +447,7 @@ def render_challenge(user_id):
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
                 st.rerun()
-        return  # 重要：ここで打ち切る
-
+        return  # ここで処理を終了。これより下の「通常のメイン画面」は描画されない。
     # ========================================
     # 通常のメイン画面（ここから下はリセット不要な時だけ動く）
     # ========================================
