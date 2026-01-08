@@ -781,6 +781,11 @@ def main():
     
     habit = dm.load_user_habit(user_id)
     has_active_habit = habit and habit.get("name")
+    
+    # 習慣がないのに challenge ページに居ようとしたら settings に強制送還する
+    if not has_active_habit and st.session_state.page == "challenge":
+        st.session_state.page = "settings"
+        st.rerun()
  
     if has_active_habit:
         st.sidebar.title("メニュー")
@@ -847,6 +852,10 @@ def main():
             st.sidebar.markdown("---")
             st.sidebar.markdown("### 🔧 デバッグモード")
             
+            # countを取得（習慣がある場合のみ）
+            logs = tracker.get_logs(user_id) if has_active_habit else []
+            count, last_date = tracker.get_click_status(logs) if logs else (0, None)
+            
             with st.sidebar.expander("⚡ クイックテスト"):
                 # 習慣の時刻を現在時刻+2分に設定
                 if st.button("⏰ 2分後に通知テスト", use_container_width=True):
@@ -875,7 +884,7 @@ def main():
                     # カウント分の記録を生成
                     tracker.reset_logs(user_id)
                     for i in range(count_input):
-                        date = (datetime.date.today() - timedelta(days=count_input - i - 1)).strftime(DATE_FORMAT)
+                        date = (datetime.date.today() - datetime.timedelta(days=count_input - i - 1)).strftime(DATE_FORMAT)
                         supabase.table("progress_logs").insert({
                             "user_id": user_id,
                             "log_date": date,
