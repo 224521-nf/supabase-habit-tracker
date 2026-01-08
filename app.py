@@ -275,7 +275,6 @@ def render_settings(user_id):
     st.markdown("<h1 style='text-align: center;'>🎯 新しい習慣を始めよう</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; font-size: 1.1rem;'>30日間、一つの習慣に集中して人生を変えましょう</p>", unsafe_allow_html=True)
     st.write("")
-    st.write("")
     
     # ステップ1: 習慣の内容
     st.markdown("### 習慣の内容を決める")
