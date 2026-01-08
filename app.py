@@ -442,8 +442,11 @@ def render_challenge(user_id):
     # --- リセット画面の表示 ---
     if should_show_reset:
         st.markdown(f"<h1 style='text-align: center;'>⚠️習慣がリセットされました</h1>", unsafe_allow_html=True)
+        st.write(" ")
+        st.write(" ")
         
         st.markdown(
+            
             """
             <p style="text-align: center; font-weight: bold; font-size: 33px;">
                 習慣の連続日数が2日間更新されなかったため、日数が0に初期化されました。
