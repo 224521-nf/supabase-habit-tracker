@@ -278,57 +278,49 @@ def render_settings(user_id):
     st.write("")
     
     # ステップ1: 習慣の内容
-    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
+    st.markdown("### 習慣の内容を決める")
     
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
-**習慣を継続させる3つのポイント:**
-1. **目標のハードルを下げる** - 5分でできることから始めよう
-2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
-3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
+            **習慣を継続させる3つのポイント:**
+            1. **目標のハードルを下げる** - 5分でできることから始めよう
+            2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
+            3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
 
-**おすすめの習慣例:**
-- 🏃‍♂️ 5分間のストレッチ
-- 📚 参考書を3ページ読む
-- 🧹 机の上を整理する
-- 💧 水を1杯飲む
-- 📱 SNSを見る前に深呼吸3回
+        **おすすめの習慣例:**
+        - 5分間のストレッチ
+        - 参考書を3ページ読む
+        - 机の上を整理する
+        - 腕立て伏せ10回
+        - 毎日5分タイピング練習
         """)
     
     habit = dm.load_user_habit(user_id)
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="例: 朝5分ストレッチをする",
-        help="できるだけシンプルで具体的に！"
+        placeholder="できるだけシンプルで具体的な習慣にしましょう！"
     )
-    
-    # 入力内容のバリデーション
-    if name:
-        if '5分' in name or '５分' in name or len(name) < 30:
-            st.success("✅ 良い習慣です！継続しやすそうですね")
-        elif len(name) > 50:
-            st.warning("⚠️ 少し長すぎるかも。もっとシンプルにしてみましょう")
     
     st.write("")
     st.write("")
     
     # ステップ2: 時間設定
-    st.markdown("### ⏰ ステップ2: 実行する時間を決める")
+    st.markdown("### 実行する時間を決める")
     
     with st.expander("💡 タイミングのコツを見る", expanded=False):
         st.markdown("""
-**効果的なタイミングの選び方:**
-- **既存の習慣の前後** につなげると続きやすい
-- **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
-- **毎日同じ時間** にすると自動的になりやすい
+            **効果的なタイミングの選び方:**
+            - **既存の習慣の前後** につなげると続きやすい
+            - **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
+            - **毎日同じ時間** にすると定着しやすい
 
-**タイミングの例:**
-- 🚿 お風呂に入る前後
-- 🍽️ 食事の前後
-- 🌙 寝る前
-- ☀️ 起きてすぐ
-        """)
+            **タイミングの例:**
+            - お風呂に入る前後
+            - 食事の前後
+            - 寝る前
+            - 起きてすぐ
+                    """)
     
     t = TIME_INPUT_DEFAULT
     if habit and habit.get("target_time"):
@@ -340,14 +332,13 @@ def render_settings(user_id):
     
     time_input = st.time_input(
         '目標時刻',
-        value=t,
-        help="毎日この時間に実行することを目指しましょう"
+        value=t
     )
     
     # 確認と開始
     if name and time_input:
         st.markdown("---")
-        st.markdown("### ✅ 設定内容の確認")
+        st.markdown("### 設定内容の確認")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -355,11 +346,11 @@ def render_settings(user_id):
         with col2:
             st.info(f"**時刻:** {time_input.strftime('%H:%M')}")
         
-        st.warning("⚠️ **注意:** 一度開始すると、30日達成まで変更できません")
+        st.warning("⚠️ **注意:** 一度開始すると、習慣内容を変更できません")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button('🚀 この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
+            if st.button('この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
                 try:
                     result = supabase.table("habits").upsert({
                         "user_id": user_id,
