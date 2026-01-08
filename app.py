@@ -456,7 +456,7 @@ def render_challenge(user_id):
             )
            
         st.write("")
-        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 18px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 20px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
         st.write("")
         
@@ -466,7 +466,7 @@ def render_challenge(user_id):
                 tracker.reset_logs(user_id)
                 st.rerun()
         with col2:
-            if st.button("気持ちを切り替えて新しい習慣に挑戦する", use_container_width=True):
+            if st.button("新しい習慣に挑戦する", use_container_width=True):
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
