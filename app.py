@@ -534,10 +534,10 @@ def render_challenge(user_id):
     st.write("")
     
     # デバッグ情報（開発者用）
-with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
-    st.write(f"**最終記録日:** {last_date}")
-    st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
-    st.write(f"**連続日数(count):** {count}")
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+        st.write(f"**最終記録日:** {last_date}")
+        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        st.write(f"**連続日数(count):** {count}")
     
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
