@@ -279,7 +279,7 @@ def render_settings(user_id):
     
     # ステップ1: 習慣の内容
     st.markdown("### 習慣の内容を決める")
-    
+    st.markdown("")
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
                       
