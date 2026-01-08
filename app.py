@@ -347,11 +347,9 @@ def render_settings(user_id):
         st.markdown("---")
         st.markdown("### 設定内容の確認")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"**習慣:** {name}")
-        with col2:
-            st.info(f"**時刻:** {time_input.strftime('%H:%M')}")
+        st.info(f"**習慣:** {name}")
+        
+        st.info(f"**時刻:** {time_input.strftime('%H:%M')}")
         
         st.warning("⚠️ **注意:** 一度開始すると、習慣内容を変更できません")
         
