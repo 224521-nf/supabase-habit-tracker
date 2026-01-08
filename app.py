@@ -441,19 +441,18 @@ def render_challenge(user_id):
 
     # --- リセット画面の表示 ---
     if should_show_reset:
-        st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.markdown(f"<h3 style = 'text-align : center;'> 目標時間: {habit["target_time"]}</h3>",unsafe_allow_html=True)
-        st.markdown(" ")
+        st.markdown(f"<h1 style='text-align: center;'>⚠️習慣がリセットされました</h1>", unsafe_allow_html=True)
         
         st.markdown(
-    """
-    <p style="text-align: center; font-weight: bold; font-size: 33px;">
-        習慣の連続日数が2日間更新されなかったため、日数が0に初期化されました。
-        ここで足を止めず習慣を続けてみませんか？
-    </p>
-    """,
-    unsafe_allow_html=True
-)
+            """
+            <p style="text-align: center; font-weight: bold; font-size: 33px;">
+                習慣の連続日数が2日間更新されなかったため、日数が0に初期化されました。
+                ここで足を止めず習慣を続けてみませんか？
+            </p>
+            """,
+            unsafe_allow_html=True
+            )
+           
         st.write("")
         st.markdown("<p style='color: #999; font-weight: bold; text-align: center;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
