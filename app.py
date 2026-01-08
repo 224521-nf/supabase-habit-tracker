@@ -406,30 +406,36 @@ def render_challenge(user_id):
     
     # 今日の日付
     today_obj = datetime.date.today()
-
+    past_logs = [l for l in logs if datetime.datetime.strptime(l['log_date'], DATE_FORMAT).date() < today_obj]
+    
     # ========================================
     # 最優先: リセット判定（この判定より上に画面表示コードを書かない）
     # ========================================
     should_show_reset = False
     
-    if last_date:
-        # 記録がある場合：最終記録日との比較
-        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-        days_since = (today_obj - last_date_obj).days
-        if days_since > MISS_DAYS_THRESHOLD:
+   # 判定用の「真の最終記録日」を past_logs から取得
+    if past_logs:
+        # 過去ログの中で最新の日付
+        actual_last_date = past_logs[0]['log_date']
+        actual_last_date_obj = datetime.datetime.strptime(actual_last_date, DATE_FORMAT).date()
+        
+        # 今日との差を計算
+        days_since = (today_obj - actual_last_date_obj).days
+        
+        # 今日まだ記録していない、かつ過去の最終記録から閾値を超えていたらリセット
+        # (既に今日記録している場合は、その時点で継続成功なのでリセットしない)
+        if not tracker.can_click_today(last_date):
+            # 今日記録済みならセーフ
+            pass
+        elif days_since > MISS_DAYS_THRESHOLD:
             should_show_reset = True
-            
-    else:
-        # 記録がない場合：作成日との比較
+    elif not last_date:  # 追加：過去ログもなく、今日の日付もない＝完全未記録
         created_at_raw = habit.get("created_at")
         if created_at_raw:
-            try:
-                c_date_str = str(created_at_raw)[:10]
-                created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
-                if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
-                    should_show_reset = True
-            except:
-                pass
+            c_date_str = str(created_at_raw)[:10]
+            created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
+            if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
+                should_show_reset = True
 
     # --- リセット画面の表示（条件合致なら即 return） ---
     if should_show_reset:
