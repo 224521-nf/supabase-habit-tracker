@@ -408,6 +408,9 @@ def render_challenge(user_id):
     # 最優先: リセット判定（画面表示前に実行）
     # ========================================
     should_show_reset = False
+    
+    created_date = habit.get("created_at")
+    
     if last_date:
         last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
         days_since_last = (datetime.date.today() - last_date_obj).days
@@ -415,7 +418,13 @@ def render_challenge(user_id):
         # 2日以上経過している場合（今日が3日目以降）
         if days_since_last > MISS_DAYS_THRESHOLD:
             should_show_reset = True
-    
+    elif created_date:
+        # 2. 記録が一度もない場合：作成日と今日を比較
+        # created_date が ISO形式文字列の場合のパース
+        c_date_obj = datetime.datetime.fromisoformat(created_date).date()
+        days_since_created = (datetime.date.today() - c_date_obj).days
+        if days_since_created > MISS_DAYS_THRESHOLD:
+            should_show_reset = True
     # リセット画面を表示するべき場合（ヘッダーより前に判定）
     if should_show_reset:
         # ヘッダー（リセット画面用）
