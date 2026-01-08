@@ -496,14 +496,13 @@ def render_challenge(user_id):
             st.balloons()
             st.rerun()
     else:
-        st.success("✅ 今日は既に記録済みです！")
+        st.success("おつかれさま！明日も頑張りましょう！")
 
         # 取り消しボタン
         st.write("")
-        with st.expander("記録を取り消す"):
-            if st.button("直前の記録を削除"):
-                tracker.delete_today_log(user_id)
-                st.rerun()
+        if st.button("直前の記録を削除"):
+            tracker.delete_today_log(user_id)
+            st.rerun()
             
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
