@@ -387,11 +387,11 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
 
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ（リセット判定・テスト機能改善版）"""
+    """習慣に挑戦し、進捗を記録するページ"""
     import sys
     import time
     
-    # 習慣データの取得
+    # 1. データのロード
     habit = dm.load_user_habit(user_id)
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
@@ -400,57 +400,55 @@ def render_challenge(user_id):
             st.rerun()
         return
 
-    # ログとステータスの取得
+    # 2. ログとステータスの取得
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
     
     # ========================================
-    # 最優先: リセット判定（画面表示前に実行）
+    # 最優先: リセット判定（日付ベースで厳密に）
     # ========================================
     should_show_reset = False
-    created_at_raw = habit.get("created_at")
+    today_obj = datetime.date.today()
     
-    # 判定の基準日を決定（記録があれば最終記録日、なければ作成日）
     if last_date:
-        base_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-        days_since = (datetime.date.today() - base_date_obj).days
+        # 最終記録日がある場合
+        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+        days_since = (today_obj - last_date_obj).days
         if days_since > MISS_DAYS_THRESHOLD:
             should_show_reset = True
-    elif created_at_raw:
-        try:
-            # ISO形式 "2026-01-01T..." から日付部分のみ抽出
-            c_date_str = created_at_raw[:10] if isinstance(created_at_raw, str) else str(created_at_raw)[:10]
-            base_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
-            days_since = (datetime.date.today() - base_date_obj).days
-            if days_since > MISS_DAYS_THRESHOLD:
-                should_show_reset = True
-        except:
-            pass
+    else:
+        # 記録がない場合は習慣作成日（created_at）を使用
+        created_at_raw = habit.get("created_at")
+        if created_at_raw:
+            try:
+                c_date_str = str(created_at_raw)[:10]
+                created_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
+                if (today_obj - created_date_obj).days > MISS_DAYS_THRESHOLD:
+                    should_show_reset = True
+            except:
+                pass
 
-    # リセット画面の表示
+    # --- リセット画面の表示 ---
     if should_show_reset:
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.error("### 2日間更新がなかったため、日数がリセットされました")
-        st.write("習慣を続けるコツは、ハードルを下げて毎日少しずつでも触れることです。")
+        st.error("### 連続記録が途切れてしまいました")
+        st.info(f"最終記録日（または開始日）から {MISS_DAYS_THRESHOLD + 1} 日以上経過したため、リセットが必要です。")
         
         col1, col2 = st.columns(2)
         with col1:
             if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
                 tracker.reset_logs(user_id)
-                st.success("再チャレンジ開始！")
-                time.sleep(1)
                 st.rerun()
         with col2:
             if st.button("新しい習慣を設定", use_container_width=True):
-                # 履歴保存などの処理
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
                 st.rerun()
-        return
+        return  # 重要：ここで打ち切る
 
     # ========================================
-    # 通常のメイン画面
+    # 通常のメイン画面（ここから下はリセット不要な時だけ動く）
     # ========================================
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
@@ -460,32 +458,31 @@ def render_challenge(user_id):
         st.write(f"最終記録日: {last_date}")
         st.write(f"全ログ数: {len(logs)}")
         if last_date:
-            diff = (datetime.date.today() - datetime.datetime.strptime(last_date, DATE_FORMAT).date()).days
-            st.write(f"経過日数: {diff}日 (閾値: {MISS_DAYS_THRESHOLD})")
+            diff = (today_obj - datetime.datetime.strptime(last_date, DATE_FORMAT).date()).days
+            st.write(f"経過日数: {diff}日 (リセット閾値: {MISS_DAYS_THRESHOLD}日)")
         
         st.write("---")
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             if st.button("🧪 最終記録日を3日前に変更", key="btn_test_3days"):
-                tracker.reset_logs(user_id) # 全削除
+                tracker.reset_logs(user_id) # 今日のログも含め全消去
                 time.sleep(0.5)
-                # 3日前のログを1件だけ作成
-                target_date = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                target_date = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
                 dm.save_click_log(user_id, target_date, 12)
-                st.success("3日前に設定完了。F5で更新してください")
+                st.rerun()
         with col_t2:
             if st.button("🔄 強制リセット(ログ全消去)", key="btn_test_clear"):
                 tracker.reset_logs(user_id)
                 st.rerun()
 
-    # プログレスバーとメトリクス
+    # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
     c1, c2, c3 = st.columns(3)
     c1.metric("🔥 連続記録", f"{count}日")
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
 
-    # 記録ボタン
+    # 記録ボタンエリア
     st.write("---")
     if tracker.can_click_today(last_date):
         if st.button("今日の習慣を記録する", use_container_width=True, type="primary"):
@@ -495,7 +492,8 @@ def render_challenge(user_id):
     else:
         st.success("✅ 今日は既に記録済みです！")
 
-    # 取り消しボタン（Expander内）
+    # 取り消しボタン
+    st.write("")
     with st.expander("記録を取り消す"):
         if st.button("直前の記録を削除"):
             tracker.delete_today_log(user_id)
