@@ -444,8 +444,15 @@ def render_challenge(user_id):
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
         st.markdown(f"<h3 style = 'text-align : center;'> 目標時間: {habit["target_time"]}</h3>",unsafe_allow_html=True)
         
-        st.markdown(""" ### 習慣の連続日数が２日間更新されなかったため、  
-                    日数が0に初期化されました。""")
+        st.markdown(
+    """
+    <p style="text-align: center; font-weight: bold; font-size: 18px;">
+        ⚠️ 習慣の連続日数が2日間更新されなかったため、<br>
+        日数が0に初期化されました。
+    </p>
+    """,
+    unsafe_allow_html=True
+)
         st.write("")
         st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
