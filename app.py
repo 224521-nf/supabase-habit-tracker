@@ -534,58 +534,102 @@ def render_challenge(user_id):
     st.write("")
     
     # デバッグ情報（開発者用）
-    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
-        st.write(f"**最終記録日:** {last_date}")
-        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
-        st.write(f"**連続日数(count):** {count}")
+with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+    st.write(f"**最終記録日:** {last_date}")
+    st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+    st.write(f"**連続日数(count):** {count}")
+    
+    if last_date:
+        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+        days_since_last = (datetime.date.today() - last_date_obj).days
+        st.write(f"**経過日数:** {days_since_last}日")
+        st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
+        st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD}) AND count({count}) > 0")
         
-        if last_date:
-            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
-            days_since_last = (datetime.date.today() - last_date_obj).days
-            st.write(f"**経過日数:** {days_since_last}日")
-            st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
-            st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD}) AND count({count}) > 0")
-            
-            if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
-                st.error(f"⚠️ リセット条件を満たしています！")
-            else:
-                st.success(f"✅ リセット条件を満たしていません")
-                if days_since_last <= MISS_DAYS_THRESHOLD:
-                    st.info(f"理由: 経過日数が閾値以下（あと{MISS_DAYS_THRESHOLD - days_since_last + 1}日）")
-                if count == 0:
-                    st.info("理由: 連続日数が0")
-        
-        st.write("---")
-        st.write("**テスト用ボタン:**")
-        st.warning("⚠️ ボタンを押した後、ページがリロードされます")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト", key="test_btn_3days"):
-                with st.spinner("処理中..."):
+        if days_since_last > MISS_DAYS_THRESHOLD and count > 0:
+            st.error(f"⚠️ リセット条件を満たしています！")
+        else:
+            st.success(f"✅ リセット条件を満たしていません")
+            if days_since_last <= MISS_DAYS_THRESHOLD:
+                st.info(f"理由: 経過日数が閾値以下（あと{MISS_DAYS_THRESHOLD - days_since_last + 1}日）")
+            if count == 0:
+                st.info("理由: 連続日数が0")
+    
+    st.write("---")
+    st.write(f"**全ログ数:** {len(logs)}")
+    if logs:
+        st.write("**全てのログ:**")
+        for i, log in enumerate(logs, 1):
+            st.write(f"  {i}. {log}")
+    
+    st.write("---")
+    st.write("**テスト用ボタン:**")
+    st.warning("⚠️ ボタンを押した後、ページがリロードされます")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト", key="test_btn_3days"):
+            with st.spinner("処理中..."):
+                try:
                     # ステップ1: 全ログを削除
-                    tracker.reset_logs(user_id)
-                    time.sleep(0.5)
+                    st.write("ステップ1: 全ログを削除中...")
+                    delete_result = tracker.reset_logs(user_id)
+                    st.write(f"削除結果: {delete_result}")
+                    time.sleep(1.0)  # 待機時間を延長
                     
-                    # ステップ2: 3日前の日付でログを1件追加
+                    # ステップ2: 削除を確認
+                    check_logs = dm.load_click_logs(user_id)
+                    st.write(f"削除後のログ件数: {len(check_logs)}")
+                    
+                    if len(check_logs) > 0:
+                        st.error("⚠️ ログの削除に失敗しました。再度お試しください。")
+                        st.stop()
+                    
+                    # ステップ3: 3日前の日付でログを1件追加
+                    st.write("ステップ2: 3日前のログを追加中...")
                     three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-                    dm.save_click_log(user_id, three_days_ago, 12)
-                    time.sleep(0.5)
+                    add_result = dm.save_click_log(user_id, three_days_ago, 12)
+                    st.write(f"追加結果: {add_result}")
+                    time.sleep(1.0)
+                    
+                    # ステップ4: 追加を確認
+                    final_logs = dm.load_click_logs(user_id)
+                    st.write(f"最終ログ件数: {len(final_logs)}")
+                    if final_logs:
+                        st.write(f"最新ログ: {final_logs[0]}")
                     
                     st.success(f"✅ 最終記録日を {three_days_ago} に設定しました")
                     st.info("ページをリロードします...")
-                    time.sleep(0.5)
+                    time.sleep(1.0)
                     st.rerun()
-        
-        with col2:
-            if st.button("🔄 強制リセット", help="手動でリセット", key="test_btn_reset"):
-                with st.spinner("処理中..."):
-                    tracker.reset_logs(user_id)
-                    time.sleep(0.5)
+                    
+                except Exception as e:
+                    st.error(f"❌ エラー: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+    
+    with col2:
+        if st.button("🔄 強制リセット", help="手動でリセット", key="test_btn_reset"):
+            with st.spinner("処理中..."):
+                try:
+                    st.write("全ログを削除中...")
+                    delete_result = tracker.reset_logs(user_id)
+                    st.write(f"削除結果: {delete_result}")
+                    time.sleep(1.0)
+                    
+                    # 確認
+                    check_logs = dm.load_click_logs(user_id)
+                    st.write(f"削除後のログ件数: {len(check_logs)}")
+                    
                     st.success("✅ 全ログをリセットしました")
                     st.info("ページをリロードします...")
-                    time.sleep(0.5)
+                    time.sleep(1.0)
                     st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"❌ エラー: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
     
     # Session Stateの初期化
     if 'cheers_message' not in st.session_state:
