@@ -442,8 +442,13 @@ def render_challenge(user_id):
     # --- リセット画面の表示 ---
     if should_show_reset:
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-        st.error("### 連続記録が途切れていました")
-        st.info("前回の記録から間が空きすぎたため、リセットが必要です。")
+        st.markdown(f"<h3 style = 'text-align : center;'> 目標時間: {habit["target_time"]}</h3>",unsafe_allow_html=True)
+        
+        st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化する必要があります。")
+        st.write("")
+        st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.write("")
+        st.write("")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -484,7 +489,7 @@ def render_challenge(user_id):
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
     c1, c2, c3 = st.columns(3)
-    c1.metric("🔥 連続記録", f"{count}日")
+    c1.metric("🔥 継続記録", f"{count}日")
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
 
