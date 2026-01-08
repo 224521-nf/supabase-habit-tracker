@@ -1,12 +1,10 @@
 from supabase import Client
 
-
 class DataManagerSupabase:
     def __init__(self, supabase: Client):
         self.supabase = supabase
-
+    
     # -------- habits --------
-
     def load_user_habit(self, user_id: str) -> dict:
         try:
             res = (
@@ -17,6 +15,7 @@ class DataManagerSupabase:
                 .maybe_single()
                 .execute()
             )
+            
             if res and hasattr(res, 'data') and res.data:
                 # target_timeがtime型の場合、文字列に変換
                 if res.data.get('target_time') and not isinstance(res.data['target_time'], str):
@@ -26,7 +25,7 @@ class DataManagerSupabase:
         except Exception as e:
             print(f"Error loading user habit: {e}")
             return {}
-
+    
     def save_user_habit(self, user_id: str, name: str, target_time: str) -> bool:
         try:
             data = {
@@ -35,22 +34,18 @@ class DataManagerSupabase:
                 "target_time": target_time,
                 "active": True,
             }
-            
             res = (
                 self.supabase
                 .table("habits")
                 .upsert(data, on_conflict="user_id")
                 .execute()
             )
-            
             return res is not None and hasattr(res, 'data') and bool(res.data)
-                
         except Exception as e:
             print(f"Error saving user habit: {e}")
             return False
-
+    
     # -------- progress_logs --------
-
     def load_click_logs(self, user_id: str) -> list:
         try:
             res = (
@@ -61,13 +56,14 @@ class DataManagerSupabase:
                 .order("log_date", desc=True)
                 .execute()
             )
+            
             if res and hasattr(res, 'data') and res.data:
                 return res.data
             return []
         except Exception as e:
             print(f"Error loading click logs: {e}")
             return []
-
+    
     def save_click_log(self, user_id: str, log_date: str, hour: int) -> bool:
         try:
             res = (
@@ -87,7 +83,7 @@ class DataManagerSupabase:
         except Exception as e:
             print(f"Error saving click log: {e}")
             return False
-
+    
     def delete_click_log(self, user_id: str, log_date: str) -> bool:
         try:
             res = (
@@ -100,13 +96,13 @@ class DataManagerSupabase:
             )
             # deleteの場合はstatus_codeをチェック
             return res is not None and (
-                hasattr(res, 'status_code') and res.status_code == 204 or
-                hasattr(res, 'data')
+                hasattr(res, 'status_code') and res.status_code == 204
+                or hasattr(res, 'data')
             )
         except Exception as e:
             print(f"Error deleting click log: {e}")
             return False
-
+    
     def reset_click_logs(self, user_id: str) -> bool:
         try:
             res = (
@@ -118,15 +114,14 @@ class DataManagerSupabase:
             )
             # deleteの場合はstatus_codeをチェック
             return res is not None and (
-                hasattr(res, 'status_code') and res.status_code == 204 or
-                hasattr(res, 'data')
+                hasattr(res, 'status_code') and res.status_code == 204
+                or hasattr(res, 'data')
             )
         except Exception as e:
             print(f"Error resetting click logs: {e}")
             return False
-
+    
     # -------- history --------
-
     def load_history(self, user_id: str) -> list:
         try:
             res = (
@@ -137,13 +132,14 @@ class DataManagerSupabase:
                 .order("archived_at", desc=True)
                 .execute()
             )
+            
             if res and hasattr(res, 'data') and res.data:
                 return res.data
             return []
         except Exception as e:
             print(f"Error loading history: {e}")
             return []
-
+    
     def save_history(self, record: dict) -> bool:
         try:
             res = (
@@ -157,8 +153,7 @@ class DataManagerSupabase:
             print(f"Error saving history: {e}")
             return False
     
-        # -------- habits --------
-
+    # -------- habits --------
     def delete_user_habit(self, user_id: str) -> bool:
         """現在の習慣を削除"""
         try:
