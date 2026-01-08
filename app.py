@@ -456,7 +456,7 @@ def render_challenge(user_id):
             )
            
         st.write("")
-        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 22px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 18px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
         st.write("")
         
