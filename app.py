@@ -444,11 +444,14 @@ def render_challenge(user_id):
         st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
         st.markdown(f"<h3 style = 'text-align : center;'> 目標時間: {habit["target_time"]}</h3>",unsafe_allow_html=True)
         st.markdown(" ")
+        st.markdown(f"<h3 style = 'text-align : center;'> : {habit["target_time"]}</h3>",unsafe_allow_html=True)
         
         st.markdown(
     """
     <p style="text-align: center; font-weight: bold; font-size: 33px;">
         習慣の連続日数が2日間更新されなかったため、日数が0に初期化されました。
+        習慣に挫折は付き物！ここで足を止めず、とにかく続けてみませんか？
+        この悔しい思いを次の習慣に生かしましょう！
     </p>
     """,
     unsafe_allow_html=True
@@ -460,11 +463,11 @@ def render_challenge(user_id):
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary"):
+            if st.button("もう一度再チャレンジする", use_container_width=True, type="primary"):
                 tracker.reset_logs(user_id)
                 st.rerun()
         with col2:
-            if st.button("新しい習慣を設定", use_container_width=True):
+            if st.button("気持ちを切り替えて新しい習慣", use_container_width=True):
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
