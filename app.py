@@ -521,7 +521,7 @@ def render_history(user_id):
         archive_date = datetime.datetime.fromisoformat(r["archived_at"]).strftime("%Y年%m月%d日")
         log_summary = r.get("log_summary", [])
         
-        with st.expander(f'**{i}. {r["habit_name"]} - {archive_date} ({r["total_days"]}日達成)'):
+        with st.expander(f'**{i}. {r["habit_name"]} - {archive_date} ({r["total_days"]}日達成)**'):
             st.markdown(f'**⏰ 目標時間:** {r["target_time"]}')
             st.markdown(f'**📅 達成日:** {archive_date}')
             st.write("")
