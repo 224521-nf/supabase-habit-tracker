@@ -496,7 +496,7 @@ def render_challenge(user_id):
             st.balloons()
             st.rerun()
     else:
-        st.success("おつかれさま！明日も頑張りましょう！")
+        st.success("おつかれさま！明日も頑張りましょう(≧∇≦)")
 
         # 取り消しボタン
         st.write("")
