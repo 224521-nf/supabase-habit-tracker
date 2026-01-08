@@ -462,7 +462,7 @@ def render_challenge(user_id):
     # メイン画面（ここから下はリセット不要な時のみ）
     # ========================================
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-
+    st.markdown(f'**⏰ 目標時間:** {habit["target_time"]}')
     # デバッグ情報
     with st.expander("🔧 開発者用デバッグ情報", expanded=False):
         st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
