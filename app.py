@@ -506,7 +506,7 @@ def render_challenge(user_id):
             
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
-    st.markdown("<h1 style='text-align: center;'>🪴習慣履歴🪴</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>🪴習慣履歴</h1>", unsafe_allow_html=True)
     st.write("---")
     st.write("")
     
