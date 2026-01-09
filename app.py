@@ -475,17 +475,8 @@ def render_challenge(user_id):
     # ========================================
     # メイン画面（ここから下はリセット不要な時のみ）
     # ========================================
-    
-     # Session Stateの初期化
-    if 'milestone_message' not in st.session_state:
-        st.session_state.milestone_message = None
-    
-    if 'balloons_triggered' not in st.session_state:
-        st.session_state.balloons_triggered = False
-    
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
     st.markdown(f"<h3 style = 'text-align : center;'> 目標時間: {habit["target_time"]}</h3>",unsafe_allow_html=True)
-    
     # デバッグ情報
     with st.expander("🔧 開発者用デバッグ情報", expanded=False):
         st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
@@ -504,19 +495,6 @@ def render_challenge(user_id):
                 dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
             st.rerun()
 
-     # マイルストーンメッセージの表示
-    if st.session_state.milestone_message:
-        icon, title, message = st.session_state.milestone_message
-        st.markdown(f"""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 15px; color: white; margin: 2rem 0;'>
-            <div style='font-size: 4rem;'>{icon}</div>
-            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
-            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.session_state.milestone_message = None
-    
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
     c1, c2, c3 = st.columns(3)
@@ -524,48 +502,6 @@ def render_challenge(user_id):
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
 
-    st.write("")
-    st.markdown("---")
-    st.write("")
-
-    # 30日完全達成
-    if tracker.is_completed(count):
-        if not st.session_state.balloons_triggered:
-            st.balloons()
-            st.session_state.balloons_triggered = True
-            
-            # 30日達成のLINE通知
-            try:
-                send_line_notification_to_user(
-                    supabase,
-                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
-                    user_id
-                )
-            except:
-                pass
-        
-        st.markdown("""
-        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-                    border-radius: 20px; color: white;'>
-            <div style='font-size: 5rem;'>🏆</div>
-            <h1 style='color: white;'>30日完全達成！</h1>
-            <p style='font-size: 1.3rem;'>おめでとうございます！あなたは素晴らしい！</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.write("")
-        st.write("")
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("🎉 次の習慣にチャレンジする", use_container_width=True, type="primary"):
-                tracker.archive(user_id, habit["name"], habit["target_time"])
-                tracker.reset_logs(user_id)
-                dm.delete_user_habit(user_id)
-                st.session_state.page = "settings"
-                st.session_state.balloons_triggered = False
-                st.rerun()
-    
     # 記録ボタン
     st.write("---")
     if tracker.can_click_today(last_date):
