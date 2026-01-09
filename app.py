@@ -625,18 +625,6 @@ def render_challenge(user_id):
                         pass
                     
                     st.balloons()
-                else:
-                    # 通常の応援メッセージ
-                    messages = [
-                        "🎉 今日も達成！素晴らしい！",
-                        "💪 いい調子！継続は力なり",
-                        "⭐ 小さな進歩も大きな一歩",
-                        "🔥 一歩一歩着実に前進！",
-                        "👏 今日もお疲れさま！",
-                        "🌟 完璧です！明日も頑張ろう",
-                    ]
-                    # 応援メッセージをトーストで表示
-                    st.toast(random.choice(messages), icon="🎉")
                 
                 st.rerun()
     else:
