@@ -590,7 +590,7 @@ def render_challenge(user_id):
         st.write("")
         st.write("")
         
-        col1, col2, col3 = st.columns(2)
+        col1, col2= st.columns(2)
         
         with col1:
             if st.button("もう一度同じ習慣をやる", use_container_width=True, type="primary"):
