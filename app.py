@@ -553,7 +553,6 @@ def render_challenge(user_id):
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 15px; color: white; margin: 2rem 0;'>
-            <div style='font-size: 4rem;'>{icon}</div>
             <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
             <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
         </div>
