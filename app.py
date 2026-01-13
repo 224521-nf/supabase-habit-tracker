@@ -215,10 +215,10 @@ def render_progress_bar(current, total):
 def check_milestone(count):
     """マイルストーンをチェックして特別なメッセージを返す"""
     milestones = {
-        3:  ("🌿 3日目達成！！", "素晴らしいスタートです！"),
-        7:  ("💪 1週間達成！！", "習慣化の第一歩をクリアしました！"),
-        15: ("🔥 15日間達成！！", "もう折り返し地点にきました！この調子でいきましょう！"),
-        20: ("🌟 20日間達成！！", "習慣が身についてきました！あと少しです！"),
+        3:  ("🌿 素晴らしいスタートです！"),
+        7:  ("💪 習慣化の第一歩をクリアしました！"),
+        15: ("🔥 もう折り返し地点にきました！この調子でいきましょう！"),
+        20: ("🌟 習慣が身についてきました！あと少しです！")
     }
     return milestones.get(count, None)
 
@@ -574,7 +574,7 @@ def render_challenge(user_id):
         st.markdown("""
         <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
                     border-radius: 20px; color: white;'>
-            <h1 style='color: white;'>🏆 30日完全達成！</h1>
+            <h1 style='color: white;'>🏆 達成しました！！</h1>
             <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
         """, unsafe_allow_html=True)
