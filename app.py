@@ -461,8 +461,7 @@ def render_challenge(user_id):
         col1, col2 = st.columns(2)
         with col1:
             if st.button("再チャレンジする", use_container_width=True, type="primary"):
-                tracker.reset_logs(user_id)
-                
+                tracker.reset_logs(user_id)  
                 # LINE通知を送信
                 try:
                     send_line_notification_to_user(
@@ -472,8 +471,8 @@ def render_challenge(user_id):
                     )
                 except:
                     pass
-                
                 st.rerun()
+                
         with col2:
             if st.button("新しい習慣に挑戦する", use_container_width=True):
                 # 履歴に保存
@@ -629,21 +628,19 @@ def render_challenge(user_id):
                 
                 st.rerun()
     else:
-        st.success("✅ 今日は既に記録済みです。素晴らしい！")
-        st.info("また明日も頑張りましょう 💪")
+        st.success("✅ 今日は既に記録済みです。また明日も頑張りましょう💪")
 
         # 取り消しボタン
         st.write("")
-        with st.expander("❌ 間違えて記録した場合"):
-            st.warning("本日の記録を取り消すことができます")
-            if st.button("🔄 直前の記録を取り消す"):
-                if count > 0:
-                    tracker.delete_today_log(user_id)
-                    st.success("記録を取り消しました。再度記録できます")
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("取り消す記録がありません")
+        
+        if st.button("🔄 直前の記録を取り消す"):
+            if count > 0:
+                tracker.delete_today_log(user_id)
+                st.success("記録を取り消しました。再度記録できます")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("取り消す記録がありません")
             
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
