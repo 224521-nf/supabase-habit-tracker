@@ -611,7 +611,9 @@ def render_challenge(user_id):
                             "total_days": len(all_logs_sorted),
                             "log_summary": all_logs_sorted,
                         }
+                        
                         dm.save_history(history_record)
+                        
                     except:
                         pass
                 
@@ -630,13 +632,29 @@ def render_challenge(user_id):
         
         with col2:
             if st.button(" 次の習慣にチャレンジする", use_container_width=True, type="primary"):
-                tracker.archive(user_id, habit["name"], habit["target_time"])
+              # 履歴に保存
+                all_logs = dm.load_click_logs(user_id)
+                if all_logs:
+                    all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
+                    try:
+                        history_record = {
+                            "user_id": user_id,
+                            "habit_name": habit["name"] + " (未完了)",
+                            "target_time": habit["target_time"],
+                            "archived_at": datetime.datetime.now().isoformat(),
+                            "total_days": len(all_logs_sorted),
+                            "log_summary": all_logs_sorted,
+                        }
+                        dm.save_history(history_record)
+                    except:
+                        pass
+                
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
                 st.session_state.page = "settings"
-                st.session_state.balloons_triggered = False
                 st.rerun()
-
+        return
+        
     # 記録ボタン
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
