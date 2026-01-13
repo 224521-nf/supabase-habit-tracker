@@ -587,6 +587,7 @@ def render_challenge(user_id):
         </div>
         """, unsafe_allow_html=True)
         
+        st.markdown("---")
         st.write("")
         st.write("")
         
