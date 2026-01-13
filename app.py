@@ -569,6 +569,10 @@ def render_challenge(user_id):
     
     # 30日完全達成
     if tracker.is_completed(count):
+        # balloons_triggeredの初期化
+        if 'balloons_triggered' not in st.session_state:
+            st.session_state.balloons_triggered = False
+            
         if not st.session_state.balloons_triggered:
             st.balloons()
             st.session_state.balloons_triggered = True
@@ -613,7 +617,9 @@ def render_challenge(user_id):
                         }
                         
                         dm.save_history(history_record)
-                        
+                        # balloons_triggeredをリセット
+                        st.session_state.balloons_triggered = False
+                    
                     except:
                         pass
                 
@@ -628,6 +634,7 @@ def render_challenge(user_id):
                     )
                 except:
                     pass
+                
                 st.rerun()
         
         with col2:
@@ -651,6 +658,8 @@ def render_challenge(user_id):
                 
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
+                # balloons_triggeredをリセット
+                st.session_state.balloons_triggered = False
                 st.session_state.page = "settings"
                 st.rerun()
         return
