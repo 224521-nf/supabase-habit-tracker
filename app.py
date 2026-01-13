@@ -229,7 +229,7 @@ def render_progress_chart(logs, max_days=30):
         return
     
     df = pd.DataFrame(logs)
-    st.write(df[["log_date", "completion_hour"]].head())
+    st.write(df[["log_date", "completion_hour"]])
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
     
