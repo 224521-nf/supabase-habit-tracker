@@ -639,7 +639,7 @@ def render_challenge(user_id):
                     try:
                         history_record = {
                             "user_id": user_id,
-                            "habit_name": habit["name"] + " (未完了)",
+                            "habit_name": habit["name"],
                             "target_time": habit["target_time"],
                             "archived_at": datetime.datetime.now().isoformat(),
                             "total_days": len(all_logs_sorted),
