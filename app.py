@@ -549,7 +549,7 @@ def render_challenge(user_id):
     
     # マイルストーンメッセージの表示
     if st.session_state.milestone_message:
-        icon, title, message = st.session_state.milestone_message
+        title, message = st.session_state.milestone_message
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 15px; color: white; margin: 2rem 0;'>
