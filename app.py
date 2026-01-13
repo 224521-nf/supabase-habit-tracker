@@ -402,6 +402,13 @@ def render_challenge(user_id):
     count, last_date = tracker.get_click_status(logs)
     today_obj = datetime.date.today()
     
+    # Session Stateの初期化（最初に移動）
+    if 'milestone_message' not in st.session_state:
+        st.session_state.milestone_message = None
+    
+    if 'balloons_triggered' not in st.session_state:
+        st.session_state.balloons_triggered = False
+    
     # ========================================
     # 最優先: リセット判定（厳格モード）
     # ========================================
@@ -415,23 +422,17 @@ def render_challenge(user_id):
     )
 
     if sorted_logs:
-        # 最新のログ（今日かもしれないし、過去かもしれない）
         latest_log_date = datetime.datetime.strptime(sorted_logs[0]['log_date'], DATE_FORMAT).date()
         
-        # もし最新のログが「今日」なら、その「1つ前のログ」との差を見る
         if latest_log_date == today_obj:
             if len(sorted_logs) > 1:
-                # 2番目に新しいログ
                 prev_log_date = datetime.datetime.strptime(sorted_logs[1]['log_date'], DATE_FORMAT).date()
-                # 今日(1/8) と 2番目(1/5) の差が閾値を超えていたらアウト
                 if (today_obj - prev_log_date).days > MISS_DAYS_THRESHOLD:
                     should_show_reset = True
         else:
-            # 最新のログが「今日より前」なら、今日との差を見る
             if (today_obj - latest_log_date).days > MISS_DAYS_THRESHOLD:
                 should_show_reset = True
     else:
-        # ログがない場合は習慣作成日と比較
         created_at_raw = habit.get("created_at")
         if created_at_raw:
             try:
@@ -465,8 +466,9 @@ def render_challenge(user_id):
         col1, col2 = st.columns(2)
         with col1:
             if st.button("再チャレンジする", use_container_width=True, type="primary"):
-                tracker.reset_logs(user_id)  
-                # LINE通知を送信
+                tracker.reset_logs(user_id)
+                st.session_state.balloons_triggered = False  # リセット時にフラグもリセット
+                
                 try:
                     send_line_notification_to_user(
                         supabase,
@@ -498,6 +500,7 @@ def render_challenge(user_id):
                 
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
+                st.session_state.balloons_triggered = False  # リセット時にフラグもリセット
                 st.session_state.page = "settings"
                 st.rerun()
         return
@@ -505,13 +508,6 @@ def render_challenge(user_id):
     # ========================================
     # メイン画面（ここから下はリセット不要な時のみ）
     # ========================================
-    
-    # Session Stateの初期化
-    if 'milestone_message' not in st.session_state:
-        st.session_state.milestone_message = None
-    
-    if 'balloons_triggered' not in st.session_state:
-        st.session_state.balloons_triggered = False
     
     st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align: center;'> 目標時間: {habit['target_time']}</h3>", unsafe_allow_html=True)
@@ -525,14 +521,11 @@ def render_challenge(user_id):
         st.write(f"全ログ: {logs}")
         
         if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
-            # 今日のログがある場合はそれを保持し、他を消して3日前を入れる
             has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
             tracker.reset_logs(user_id)
             time.sleep(0.5)
-            # 3日前のログを入れる
             three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
             dm.save_click_log(user_id, three_days_ago, 12)
-            # 今日記録済みだったなら、今日の分も入れ直す
             if has_today:
                 dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
             st.rerun()
@@ -547,9 +540,6 @@ def render_challenge(user_id):
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
 
-    st.write("")
-    st.markdown("---")
-    st.write("")
     
     # マイルストーンメッセージの表示
     if st.session_state.milestone_message:
@@ -569,10 +559,6 @@ def render_challenge(user_id):
     
     # 30日完全達成
     if tracker.is_completed(count):
-        # balloons_triggeredの初期化
-        if 'balloons_triggered' not in st.session_state:
-            st.session_state.balloons_triggered = False
-            
         if not st.session_state.balloons_triggered:
             st.balloons()
             st.session_state.balloons_triggered = True
@@ -597,12 +583,11 @@ def render_challenge(user_id):
         
         st.markdown("---")
         
-        col1, col2= st.columns(2)
+        col1, col2 = st.columns(2)
         
         with col1:
             if st.button("もう一度同じ習慣をやる", use_container_width=True, type="primary"):
-                
-                 # 履歴に保存
+                # 履歴に保存
                 all_logs = dm.load_click_logs(user_id)
                 if all_logs:
                     all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
@@ -615,17 +600,13 @@ def render_challenge(user_id):
                             "total_days": len(all_logs_sorted),
                             "log_summary": all_logs_sorted,
                         }
-                        
                         dm.save_history(history_record)
-                        # balloons_triggeredをリセット
-                        st.session_state.balloons_triggered = False
-                    
                     except:
                         pass
                 
-                tracker.reset_logs(user_id)  
+                tracker.reset_logs(user_id)
+                st.session_state.balloons_triggered = False  # 次のチャレンジ用にリセット
                 
-                # LINE通知を送信
                 try:
                     send_line_notification_to_user(
                         supabase,
@@ -639,7 +620,7 @@ def render_challenge(user_id):
         
         with col2:
             if st.button(" 次の習慣にチャレンジする", use_container_width=True, type="primary"):
-              # 履歴に保存
+                # 履歴に保存
                 all_logs = dm.load_click_logs(user_id)
                 if all_logs:
                     all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
@@ -658,28 +639,24 @@ def render_challenge(user_id):
                 
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
-                # balloons_triggeredをリセット
-                st.session_state.balloons_triggered = False
+                st.session_state.balloons_triggered = False  # 次のチャレンジ用にリセット
                 st.session_state.page = "settings"
                 st.rerun()
         return
         
-    # 記録ボタン
+    # 記録ボタン（以下は変更なし）
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
                 tracker.record_today(user_id)
                 
-                # 新しいカウント
                 new_count = count + 1
                 
-                # マイルストーンチェック
                 milestone = check_milestone(new_count)
                 if milestone:
                     st.session_state.milestone_message = milestone
                     
-                    # マイルストーン達成のLINE通知
                     title, msg = milestone
                     try:
                         send_line_notification_to_user(
@@ -696,7 +673,6 @@ def render_challenge(user_id):
     else:
         st.success("✅ 今日は既に記録済みです。また明日も頑張りましょう💪")
 
-        # 取り消しボタン
         st.write("")
         
         if st.button("🔄 直前の記録を取り消す"):
