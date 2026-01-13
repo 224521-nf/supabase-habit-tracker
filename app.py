@@ -583,16 +583,31 @@ def render_challenge(user_id):
                     border-radius: 20px; color: white;'>
             <div style='font-size: 5rem;'>🏆</div>
             <h1 style='color: white;'>30日完全達成！</h1>
-            <p style='font-size: 1.3rem;'>おめでとうございます！あなたは素晴らしい！</p>
+            <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
         """, unsafe_allow_html=True)
         
         st.write("")
         st.write("")
         
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3 = st.columns(2)
+        
+        with col1:
+            if st.button("もう一度同じ習慣をやる", use_container_width=True, type="primary"):
+                tracker.reset_logs(user_id)  
+                # LINE通知を送信
+                try:
+                    send_line_notification_to_user(
+                        supabase,
+                        f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
+                        user_id
+                    )
+                except:
+                    pass
+                st.rerun()
+        
         with col2:
-            if st.button("🎉 次の習慣にチャレンジする", use_container_width=True, type="primary"):
+            if st.button(" 次の習慣にチャレンジする", use_container_width=True, type="primary"):
                 tracker.archive(user_id, habit["name"], habit["target_time"])
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
