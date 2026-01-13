@@ -618,11 +618,11 @@ def render_challenge(user_id):
                     st.session_state.milestone_message = milestone
                     
                     # マイルストーン達成のLINE通知
-                    icon, title, msg = milestone
+                    title, msg = milestone
                     try:
                         send_line_notification_to_user(
                             supabase,
-                            f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                            f"{title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
                             user_id
                         )
                     except:
