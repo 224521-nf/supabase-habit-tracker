@@ -592,8 +592,6 @@ def render_challenge(user_id):
         """, unsafe_allow_html=True)
         
         st.markdown("---")
-        st.write("")
-        st.write("")
         
         col1, col2= st.columns(2)
         
