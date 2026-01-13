@@ -235,6 +235,7 @@ def render_progress_chart(logs, max_days=30):
         
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
+    df.index = range(1, len(df) + 1)
     
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
