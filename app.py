@@ -636,7 +636,6 @@ def render_challenge(user_id):
         if st.button("🔄 直前の記録を取り消す"):
             if count > 0:
                 tracker.delete_today_log(user_id)
-                st.success("記録を取り消しました。再度記録できます")
                 time.sleep(1)
                 st.rerun()
             else:
