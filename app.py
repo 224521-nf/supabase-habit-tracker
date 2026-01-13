@@ -215,10 +215,10 @@ def render_progress_bar(current, total):
 def check_milestone(count):
     """マイルストーンをチェックして特別なメッセージを返す"""
     milestones = {
-        3:  ("🌿 素晴らしいスタートです！"),
-        7:  ("💪 習慣化の第一歩をクリアしました！"),
-        15: ("🔥 もう折り返し地点にきました！この調子でいきましょう！"),
-        20: ("🌟 習慣が身についてきました！あと少しです！")
+        3:  ("🌿 3日目達成！！", "素晴らしいスタートです！"),
+        7:  ("💪 1週間達成！！", "習慣化の第一歩をクリアしました！"),
+        15: ("🔥 15日間達成！！", "もう折り返し地点にきました！この調子でいきましょう！"),
+        20: ("🌟 20日間達成！！", "習慣が身についてきました！あと少しです！"),
     }
     return milestones.get(count, None)
 
@@ -543,11 +543,12 @@ def render_challenge(user_id):
     
     # マイルストーンメッセージの表示
     if st.session_state.milestone_message:
-        title = st.session_state.milestone_message
+        title, message = st.session_state.milestone_message
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 15px; color: white; margin: 2rem 0;'>
             <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
@@ -654,7 +655,7 @@ def render_challenge(user_id):
                 if milestone:
                     st.session_state.milestone_message = milestone
                     
-                    title = milestone
+                    title, msg = milestone
                     try:
                         send_line_notification_to_user(
                             supabase,
