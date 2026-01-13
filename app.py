@@ -533,19 +533,6 @@ def render_challenge(user_id):
                 dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
             st.rerun()
 
-    # マイルストーンメッセージの表示
-    if st.session_state.milestone_message:
-        icon, title, message = st.session_state.milestone_message
-        st.markdown(f"""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 15px; color: white; margin: 2rem 0;'>
-            <div style='font-size: 4rem;'>{icon}</div>
-            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
-            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.session_state.milestone_message = None
-
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
     
@@ -559,6 +546,19 @@ def render_challenge(user_id):
     st.write("")
     st.markdown("---")
     st.write("")
+    
+    # マイルストーンメッセージの表示
+    if st.session_state.milestone_message:
+        icon, title, message = st.session_state.milestone_message
+        st.markdown(f"""
+        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 15px; color: white; margin: 2rem 0;'>
+            <div style='font-size: 4rem;'>{icon}</div>
+            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.session_state.milestone_message = None
 
     # 30日完全達成
     if tracker.is_completed(count):
