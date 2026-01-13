@@ -597,6 +597,24 @@ def render_challenge(user_id):
         
         with col1:
             if st.button("もう一度同じ習慣をやる", use_container_width=True, type="primary"):
+                
+                 # 履歴に保存
+                all_logs = dm.load_click_logs(user_id)
+                if all_logs:
+                    all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
+                    try:
+                        history_record = {
+                            "user_id": user_id,
+                            "habit_name": habit["name"] + " (未完了)",
+                            "target_time": habit["target_time"],
+                            "archived_at": datetime.datetime.now().isoformat(),
+                            "total_days": len(all_logs_sorted),
+                            "log_summary": all_logs_sorted,
+                        }
+                        dm.save_history(history_record)
+                    except:
+                        pass
+                
                 tracker.reset_logs(user_id)  
                 # LINE通知を送信
                 try:
