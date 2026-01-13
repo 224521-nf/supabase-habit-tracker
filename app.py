@@ -218,7 +218,7 @@ def check_milestone(count):
         3:  ("🌿 3日目達成！！", "素晴らしいスタートです！"),
         7:  ("💪 1週間達成！！", "習慣化の第一歩をクリアしました！"),
         15: ("🔥 15日間達成！！", "もう折り返し地点にきました！この調子でいきましょう！"),
-        20: ("🌟 20日間達成！！", "習慣がtoro身についてきました！あと少しです！"),
+        20: ("🌟 20日間達成！！", "習慣が身についてきました！あと少しです！"),
     }
     return milestones.get(count, None)
 
@@ -553,9 +553,7 @@ def render_challenge(user_id):
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
 
-        st.write("")
         st.markdown("---")
-        st.write("")
     
     # 30日完全達成
     if tracker.is_completed(count):
