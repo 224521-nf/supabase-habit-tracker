@@ -655,7 +655,7 @@ def render_challenge(user_id):
                 if milestone:
                     st.session_state.milestone_message = milestone
                     
-                    title, msg = milestone
+                    title = milestone
                     try:
                         send_line_notification_to_user(
                             supabase,
