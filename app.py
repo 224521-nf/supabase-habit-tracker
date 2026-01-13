@@ -586,8 +586,7 @@ def render_challenge(user_id):
         st.markdown("""
         <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
                     border-radius: 20px; color: white;'>
-            <div style='font-size: 5rem;'>🏆</div>
-            <h1 style='color: white;'>30日完全達成！</h1>
+            <h1 style='color: white;'>🏆 30日完全達成！</h1>
             <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
         """, unsafe_allow_html=True)
