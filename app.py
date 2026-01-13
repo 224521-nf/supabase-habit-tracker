@@ -228,7 +228,7 @@ def render_progress_chart(logs, max_days=30):
         st.info("📊 まだ記録がありません。最初の一歩を踏み出しましょう！")
         return
     
-    df = pd.DataFrame(logs)
+    df = pd.DataFrame(logs +1)
     
     with st.expander("1クリックごとの達成時間", expanded=False):
         st.write(df[["log_date", "completion_hour"]])
