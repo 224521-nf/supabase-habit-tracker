@@ -215,7 +215,7 @@ def render_progress_bar(current, total):
 def check_milestone(count):
     """マイルストーンをチェックして特別なメッセージを返す"""
     milestones = {
-        3: ("🌱", "3日目突破！", "素晴らしいスタートです！"),
+        3: (" 3日目突破！", "素晴らしいスタートです！"),
         7: ("🔥", "1週間達成！", "習慣化の第一歩をクリアしました！"),
         14: ("💪", "2週間達成！", "もう折り返し地点です！すごい！"),
         21: ("⭐", "3週間達成！", "習慣が身についてきました！あと少し！"),
@@ -560,6 +560,10 @@ def render_challenge(user_id):
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
 
+    st.write("")
+    st.markdown("---")
+    st.write("")
+    
     # 30日完全達成
     if tracker.is_completed(count):
         if not st.session_state.balloons_triggered:
