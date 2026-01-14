@@ -311,7 +311,7 @@ def render_settings(user_id):
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
         placeholder="シンプルで具体的な習慣にしましょう！",
-        max_chars=50 # 最大文字数制限
+        max_chars = 30 # 最大文字数制限
     )
     
     st.write("")
@@ -325,11 +325,11 @@ def render_settings(user_id):
             return
         
         # 長さチェック
-        if len(name) > 50:
-            st.error("⚠️ 習慣名は50文字以内で入力してください")
+        if len(name) >= 30:
+            st.error("⚠️ 習慣名は30文字以内で入力してください")
             return
         
-        if '5分' in name or '５分' in name or len(name) < 50:
+        if '5分' in name or '５分' in name or len(name) < 20:
             st.success("✅ 良い習慣です！継続しやすそうですね")
     
     # ステップ2: 時間設定

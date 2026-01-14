@@ -25,7 +25,7 @@ class DataManagerSupabase:
             check_name = name[:-6]  # " (未完了)" を除去
         
         # 長さチェックはcheck_nameで行う
-        if len(check_name) > 50:
+        if len(check_name) > 30:
             return False
         
         # 危険な文字列のチェック
