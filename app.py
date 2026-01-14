@@ -474,7 +474,7 @@ def render_challenge(user_id):
         
         st.markdown(
             """
-            <p style="font-size: 21px;">
+            <p style="font-size: 21px;　text-align: center;">
                 習慣の連続日数が2日間更新されなかったため、0に初期化されました。
             </p>
             """,
