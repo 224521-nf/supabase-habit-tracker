@@ -5,6 +5,7 @@ import time
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
+import html
 from supabase import create_client, Client
 from constants import *
 from auth_manager import AuthManager
@@ -17,6 +18,15 @@ from habit_tracker import HabitTracker
 def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
     """ユーザーにLINE通知を送信"""
     try:
+        # user_id検証を追加
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        if not re.match(uuid_pattern, user_id, re.IGNORECASE):
+            return False
+        
+        # メッセージの長さ制限（DoS対策）
+        if len(message) > 1000:
+            message = message[:1000] + "..."
         # LINE User IDを取得
         result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
         
@@ -46,14 +56,13 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
         
         # レスポンスの確認
         if hasattr(response, 'error') and response.error:
-            st.error(f"LINE通知エラー: {response.error}")
+            print(f"LINE通知エラー: {response.error}")
             return False
         
         return True
         
     except Exception as e:
         print(f"LINE通知エラー: {e}")
-        st.error(f"エラー: {e}")
         return False
 
 # ------------------------------
@@ -237,7 +246,6 @@ def render_progress_chart(logs, max_days=30):
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
     
-    
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
     
@@ -302,7 +310,8 @@ def render_settings(user_id):
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="できるだけシンプルで具体的な習慣にしましょう！"
+        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
+        max_chars=100 # 最大文字数制限
     )
     
     st.write("")
@@ -310,6 +319,16 @@ def render_settings(user_id):
     
     # 入力内容のバリデーション
     if name:
+        # 危険な文字列のチェック
+        if '<script' in name.lower() or 'javascript:' in name.lower():
+            st.error("⚠️ 無効な文字が含まれています")
+            return
+        
+        # 長さチェック
+        if len(name) > 100:
+            st.error("⚠️ 習慣名は100文字以内で入力してください")
+            return
+        
         if '5分' in name or '５分' in name or len(name) < 30:
             st.success("✅ 良い習慣です！継続しやすそうですね")
         elif len(name) > 50:
@@ -397,6 +416,10 @@ def render_challenge(user_id):
             st.rerun()
         return
 
+    # XSS対策: HTMLエスケープ
+    safe_habit_name = html.escape(habit['name']) if habit.get('name') else ""
+    safe_target_time = html.escape(habit['target_time']) if habit.get('target_time') else ""
+    
     # 2. ログの取得
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
@@ -509,8 +532,8 @@ def render_challenge(user_id):
     # メイン画面（ここから下はリセット不要な時のみ）
     # ========================================
     
-    st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='text-align: center;'> 目標時間: {habit['target_time']}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center;'>🎯 {safe_habit_name}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;'> 目標時間: {safe_target_time}</h3>", unsafe_allow_html=True)
     
     st.write("")
     
@@ -544,11 +567,16 @@ def render_challenge(user_id):
     # マイルストーンメッセージの表示
     if st.session_state.milestone_message:
         title, message = st.session_state.milestone_message
+        
+        # タイトルとメッセージもエスケープ
+        safe_title = html.escape(title)
+        safe_message = html.escape(message)
+        
         st.markdown(f"""
         <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 15px; color: white; margin: 2rem 0;'>
-            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
-            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
+            <h2 style='color: white; margin: 1rem 0;'>{safe_title}</h2>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{safe_message}</p>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
@@ -698,8 +726,12 @@ def render_history(user_id):
         archive_date = datetime.datetime.fromisoformat(r["archived_at"]).strftime("%Y年%m月%d日")
         log_summary = r.get("log_summary", [])
         
-        with st.expander(f'**{i}. {r["habit_name"]} - {archive_date} ({r["total_days"]}日達成)**'):
-            st.markdown(f'**⏰ 目標時間:** {r["target_time"]}')
+         # XSS対策: エスケープ
+        safe_habit_name = html.escape(r["habit_name"])
+        safe_target_time = html.escape(r["target_time"])
+        
+        with st.expander(f'**{i}. {safe_habit_name} - {archive_date} ({r["total_days"]}日達成)**'):
+            st.markdown(f'**⏰ 目標時間:** {safe_target_time}')
             st.markdown(f'**📅 達成日:** {archive_date}')
             st.write("")
             render_progress_chart(log_summary, r["total_days"])
@@ -716,7 +748,18 @@ def main():
     user_id = user.id
     session = auth.get_session()
     
-    if session and session.access_token:
+    # セッションの有効期限チェック
+    if session:
+        import time
+        # セッションが期限切れの場合
+        if hasattr(session, 'expires_at') and session.expires_at:
+            if session.expires_at < time.time():
+                st.warning("セッションが期限切れです。再度ログインしてください。")
+                auth.logout()
+                st.rerun()
+                return
+    
+    if session.access_token:
         supabase.postgrest.auth(session.access_token)
     
     if "page" not in st.session_state:
@@ -769,10 +812,12 @@ def main():
         
         st.sidebar.markdown("---")
         
-        # 現在の習慣情報
+        # 現在の習慣情報（XSS対策）
         st.sidebar.markdown("### 現在の習慣")
-        st.sidebar.write(f"{habit['name']}")
-        st.sidebar.write(f"開始時刻 {habit['target_time']}")
+        safe_habit_name = html.escape(habit['name'])
+        safe_target_time = html.escape(habit['target_time'])
+        st.sidebar.write(f"{safe_habit_name}")
+        st.sidebar.write(f"開始時刻 {safe_target_time}")
         
         st.sidebar.markdown("---")
         
