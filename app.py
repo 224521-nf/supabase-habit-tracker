@@ -310,7 +310,7 @@ def render_settings(user_id):
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
+        placeholder="シンプルで具体的な習慣にしましょう！",
         max_chars=100 # 最大文字数制限
     )
     
@@ -325,7 +325,7 @@ def render_settings(user_id):
             return
         
         # 長さチェック
-        if len(name) > 100:
+        if len(name) > 30:
             st.error("⚠️ 習慣名は100文字以内で入力してください")
             return
         
