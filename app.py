@@ -190,7 +190,7 @@ def render_login():
                     st.success("ログイン成功！")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"メールアドレスかパスワードが間違っています")
+                    st.error(f"メールアドレスまたはパスワードが間違っています")
         
         with tab2:
             email = st.text_input("メールアドレス", key="signup_email")
