@@ -210,7 +210,7 @@ def render_login():
                     st.success("登録成功！ログインしてください")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"登録エラー: {e}")
+                    st.error(f"パスワードの形式が正しくありません。英小文字・英大文字・数字・記号をそれぞれ1文字以上含めてください。")
 
 # ------------------------------
 # 共通UI
