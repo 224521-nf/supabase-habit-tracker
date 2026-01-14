@@ -329,7 +329,7 @@ def render_settings(user_id):
             st.error("⚠️ 習慣名は30文字以内で入力してください")
             return
         
-        if '5分' in name or '５分' in name or len(name) < 20:
+        if '5分' in name or '５分' in name or len(name) <= 20:
             st.success("✅ 良い習慣です！継続しやすそうですね")
     
     # ステップ2: 時間設定
