@@ -270,10 +270,13 @@ def render_progress_chart(logs, max_days=30):
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
             color="#ff4b4b", linewidth=2.5, markersize=8)
     
+    yticks = range(0, 25, 2)
+    
     ax.set_ylim(-1, 24)
-    ax.set_xlim(1, 30)
-    ax.set_yticks(range(0, 24, 2))
-    ax.set_xticks(range(1, 31))
+    ax.set_xlim(1, len(df))
+    ax.set_yticks(yticks)
+    ax.set_xticks(range(1, len(df)+1))
+    ax.set_yticklabels([HabitTracker.hour_to_hhmm(h) for h in yticks])
     ax.set_ylabel("click_hour", fontsize=12, fontweight='bold')
     ax.set_xlabel("click_count", fontsize=12, fontweight='bold')
     ax.grid(True, linestyle='--', alpha=0.6)
