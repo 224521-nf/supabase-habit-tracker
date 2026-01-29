@@ -239,6 +239,7 @@ def render_progress_chart(logs, max_days=30):
     
     df = pd.DataFrame(logs)
     df.index = range(1, len(df) + 1)
+    df["completion_time"] = df["completion_hour"].apply(HabitTracker.hour_to_hhmm)
 
     with st.expander("1クリックごとの達成時間", expanded=False):
         st.write(df[["log_date", "completion_hour"]])
