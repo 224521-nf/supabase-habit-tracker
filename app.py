@@ -249,9 +249,15 @@ def render_progress_chart(logs, max_days=30):
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
     
+    # 時分に変換
+    total_minutes = round(avg_hour * 60)
+    avg_h = total_minutes // 60
+    avg_m = total_minutes % 60
+    avg_time_str = f"{avg_h:02d}:{avg_m:02d}"
+    
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間", f"{avg_hour:.1f}時", help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間",avg_time_str, help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
