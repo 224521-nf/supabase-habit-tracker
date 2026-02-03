@@ -544,21 +544,21 @@ def render_challenge(user_id):
     
     st.write("")
     
-    # デバッグ情報
-    with st.expander("🔧 開発者用デバッグ情報", expanded=False):
-        st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
-        st.write(f"連続日数: {count}")
-        st.write(f"全ログ: {logs}")
+    # # デバッグ情報
+    # with st.expander("🔧 開発者用デバッグ情報", expanded=False):
+    #     st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
+    #     st.write(f"連続日数: {count}")
+    #     st.write(f"全ログ: {logs}")
         
-        if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
-            has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
-            tracker.reset_logs(user_id)
-            time.sleep(0.5)
-            three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-            dm.save_click_log(user_id, three_days_ago, 12)
-            if has_today:
-                dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
-            st.rerun()
+    #     if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
+    #         has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
+    #         tracker.reset_logs(user_id)
+    #         time.sleep(0.5)
+    #         three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+    #         dm.save_click_log(user_id, three_days_ago, 12)
+    #         if has_today:
+    #             dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
+    #         st.rerun()
 
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
