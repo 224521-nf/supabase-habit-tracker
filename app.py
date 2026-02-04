@@ -188,6 +188,7 @@ def render_login():
                 try:
                     auth.login(email, password)
                     st.success("ログイン成功！")
+                    time.sleep(0.5)
                     st.rerun()
                 except Exception as e:
                     st.error(f"メールアドレスまたはパスワードが間違っています")
@@ -747,28 +748,37 @@ def render_history(user_id):
 # Main
 # ------------------------------
 def main():
+    # 認証チェック
     if not auth.is_authenticated():
         render_login()
         return
     
+    # ユーザー情報取得
     user = auth.get_user()
+    if not user:
+        # 認証に失敗した場合
+        render_login()
+        return
+    
     user_id = user.id
     session = auth.get_session()
     
-    # セッションの有効期限チェック
-    if session:
-        import time
-        # セッションが期限切れの場合
-        if hasattr(session, 'expires_at') and session.expires_at:
-            if session.expires_at < time.time():
-                st.warning("セッションが期限切れです。再度ログインしてください。")
-                auth.logout()
-                st.rerun()
-                return
-    
-    if session.access_token:
+    # セッションが有効な場合のみ認証トークンを設定
+    if session and session.access_token:
         supabase.postgrest.auth(session.access_token)
     
+    # 定期的にセッションをリフレッシュ（4日経過したら）
+    auth_data = st.session_state.get('auth_data')
+    if auth_data:
+        try:
+            saved_at = datetime.fromisoformat(auth_data['saved_at'])
+            if (datetime.now() - saved_at).days >= 4:
+                if auth.refresh_session():
+                    print("セッションをリフレッシュしました")
+        except Exception as e:
+            print(f"セッションリフレッシュチェックエラー: {e}")
+    
+    # ページ初期化
     if "page" not in st.session_state:
         habit = dm.load_user_habit(user_id)
         if not habit or not habit.get("name"):
@@ -781,7 +791,7 @@ def main():
     
     if has_active_habit:
         st.sidebar.title("メニュー")
-        st.sidebar.markdown("   ")  #ラジオボタン間隔調整
+        st.sidebar.markdown("   ")
         
         st.sidebar.markdown(
             """
@@ -831,7 +841,6 @@ def main():
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
-    
     else:
         st.sidebar.title("メニュー")
         st.sidebar.info("習慣を設定してください")
@@ -841,6 +850,7 @@ def main():
             auth.logout()
             st.rerun()
     
+    # ページレンダリング
     if st.session_state.page == "settings":
         render_settings(user_id)
     elif st.session_state.page == "challenge":
