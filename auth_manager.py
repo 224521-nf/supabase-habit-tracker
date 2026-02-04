@@ -1,3 +1,6 @@
+from supabase import Client
+import streamlit as st
+
 class DataManagerSupabase:
     def __init__(self, supabase: Client):
         self.supabase = supabase
