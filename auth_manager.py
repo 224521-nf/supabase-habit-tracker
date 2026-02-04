@@ -1,162 +1,236 @@
-from supabase import Client
-import streamlit as st
-from datetime import datetime, timedelta
-from cookie_manager import CookieManager
-
-class AuthManager:
+class DataManagerSupabase:
     def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.SESSION_DURATION_DAYS = 7  # セッション有効期限（7日間）
-        self.cookie_manager = CookieManager("habit_app_auth")
     
-    def _is_session_expired(self, session_data: dict) -> bool:
-        """セッションの有効期限をチェック"""
-        if not session_data or 'saved_at' not in session_data:
-            return True
+    def _validate_user_id(self, user_id: str) -> bool:
+        """user_idのフォーマットを検証"""
+        if not user_id or not isinstance(user_id, str):
+            return False
+        # SupabaseのUUIDフォーマットを検証
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        return bool(re.match(uuid_pattern, user_id, re.IGNORECASE))
+    
+    def _validate_habit_name(self, name: str) -> bool:
+        """習慣名のバリデーション"""
+        if not name or not isinstance(name, str):
+            return False
+        if len(name) > 100:
+            return False
+        # 危険な文字列のチェック
+        dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onclick=']
+        name_lower = name.lower()
+        return not any(pattern in name_lower for pattern in dangerous_patterns)
+    
+    def _validate_time_format(self, time_str: str) -> bool:
+        """時刻フォーマットのバリデーション"""
+        if not time_str or not isinstance(time_str, str):
+            return False
+        import re
+        # HH:MM形式のみ許可
+        time_pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+        return bool(re.match(time_pattern, time_str))
+    
+    # -------- habits --------
+    def load_user_habit(self, user_id: str) -> dict:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+    
+        try:
+            res = (
+                self.supabase
+                .table("habits")
+                .select("*")
+                .eq("user_id", user_id)
+                .maybe_single()
+                .execute()
+            )
+            
+            if res and hasattr(res, 'data') and res.data:
+                # target_timeがtime型の場合、文字列に変換
+                if res.data.get('target_time') and not isinstance(res.data['target_time'], str):
+                    res.data['target_time'] = str(res.data['target_time'])
+                return res.data
+            return {}
+        except Exception as e:
+            print(f"Error loading user habit: {e}")
+            return {}
+    
+    def save_user_habit(self, user_id: str, name: str, target_time: str) -> bool:
+        # バリデーション
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+        if not self._validate_habit_name(name):
+            raise ValueError("Invalid habit name")
+        if not self._validate_time_format(target_time):
+            raise ValueError("Invalid time format")
         
         try:
-            saved_at = datetime.fromisoformat(session_data['saved_at'])
-            expires_at = saved_at + timedelta(days=self.SESSION_DURATION_DAYS)
-            return datetime.now() > expires_at
-        except:
-            return True
-    
-    def _restore_session(self, session_data: dict) -> bool:
-        """保存されたセッション情報からSupabaseセッションを復元"""
-        try:
-            # Supabaseのセッションを設定
-            self.supabase.auth.set_session(
-                session_data['access_token'],
-                session_data['refresh_token']
+            data = {
+                "user_id": user_id,
+                "name": name,
+                "target_time": target_time,
+                "active": True,
+            }
+            res = (
+                self.supabase
+                .table("habits")
+                .upsert(data, on_conflict="user_id")
+                .execute()
             )
-            return True
+            return res is not None and hasattr(res, 'data') and bool(res.data)
         except Exception as e:
-            print(f"セッション復元エラー: {e}")
+            print(f"Error saving user habit: {e}")
             return False
     
-    def login(self, email: str, password: str):
-        """ログイン処理"""
-        response = self.supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password
-        })
+    # -------- progress_logs --------
+    def load_click_logs(self, user_id: str) -> list:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
         
-        if response and response.session:
-            # セッション情報をクッキーに保存
-            session_data = {
-                'access_token': response.session.access_token,
-                'refresh_token': response.session.refresh_token,
-                'user_id': response.user.id,
-                'email': response.user.email,
-                'saved_at': datetime.now().isoformat()
-            }
-            
-            # クッキーに保存（7日間有効）
-            self.cookie_manager.set_cookie(session_data, days=self.SESSION_DURATION_DAYS)
-            
-            # session_stateにも保存（即座にアクセスできるように）
-            st.session_state['auth_data'] = session_data
-            st.session_state['authenticated'] = True
-            
-            return response
-        
-        raise Exception("ログインに失敗しました")
-    
-    def signup(self, email: str, password: str):
-        """新規登録処理"""
-        response = self.supabase.auth.sign_up({
-            "email": email,
-            "password": password
-        })
-        return response
-    
-    def logout(self):
-        """ログアウト処理"""
         try:
-            self.supabase.auth.sign_out()
-        except:
-            pass
-        finally:
-            # クッキーを削除
-            self.cookie_manager.delete_cookie()
+            res = (
+                self.supabase
+                .table("progress_logs")
+                .select("log_date, completion_hour")
+                .eq("user_id", user_id)
+                .order("log_date", desc=True)
+                .execute()
+            )
             
-            # session_stateをクリア
-            if 'auth_data' in st.session_state:
-                del st.session_state['auth_data']
-            if 'authenticated' in st.session_state:
-                del st.session_state['authenticated']
-    
-    def is_authenticated(self) -> bool:
-        """認証状態をチェック"""
-        # まずsession_stateをチェック（高速）
-        if st.session_state.get('authenticated', False):
-            auth_data = st.session_state.get('auth_data')
-            if auth_data and not self._is_session_expired(auth_data):
-                return True
-        
-        # クッキーをチェック
-        cookie_data = self.cookie_manager.get_cookie()
-        if cookie_data and not self._is_session_expired(cookie_data):
-            # セッションを復元
-            if self._restore_session(cookie_data):
-                # session_stateに保存
-                st.session_state['auth_data'] = cookie_data
-                st.session_state['authenticated'] = True
-                return True
-        
-        # 認証なしまたは期限切れ
-        st.session_state['authenticated'] = False
-        return False
-    
-    def get_user(self):
-        """現在のユーザー情報を取得"""
-        # session_stateから取得
-        auth_data = st.session_state.get('auth_data')
-        if auth_data:
-            # 簡易的なユーザーオブジェクトを作成
-            class User:
-                def __init__(self, user_id, email):
-                    self.id = user_id
-                    self.email = email
-            
-            return User(auth_data['user_id'], auth_data['email'])
-        
-        # Supabaseから取得を試みる
-        try:
-            user = self.supabase.auth.get_user()
-            return user
-        except:
-            return None
-    
-    def get_session(self):
-        """現在のセッション情報を取得"""
-        try:
-            return self.supabase.auth.get_session()
-        except:
-            return None
-    
-    def refresh_session(self):
-        """セッションをリフレッシュ（トークンを更新）"""
-        try:
-            auth_data = st.session_state.get('auth_data')
-            if auth_data and 'refresh_token' in auth_data:
-                # リフレッシュトークンを使用してセッションを更新
-                response = self.supabase.auth.refresh_session(auth_data['refresh_token'])
-                
-                if response and response.session:
-                    # 新しいセッション情報を保存
-                    session_data = {
-                        'access_token': response.session.access_token,
-                        'refresh_token': response.session.refresh_token,
-                        'user_id': response.user.id,
-                        'email': response.user.email,
-                        'saved_at': datetime.now().isoformat()
-                    }
-                    
-                    self.cookie_manager.set_cookie(session_data, days=self.SESSION_DURATION_DAYS)
-                    st.session_state['auth_data'] = session_data
-                    return True
+            if res and hasattr(res, 'data') and res.data:
+                return res.data
+            return []
         except Exception as e:
-            print(f"セッションリフレッシュエラー: {e}")
+            print(f"Error loading click logs: {e}")
+            return []
+    
+    def save_click_log(self, user_id: str, log_date: str, hour: int) -> bool:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
         
-        return False
+        # hour のバリデーション
+        if not isinstance(hour, int) or hour < 0 or hour > 23:
+            raise ValueError("Invalid hour value")
+        
+        try:
+            res = (
+                self.supabase
+                .table("progress_logs")
+                .upsert(
+                    {
+                        "user_id": user_id,
+                        "log_date": log_date,
+                        "completion_hour": hour,
+                    },
+                    on_conflict="user_id,log_date"
+                )
+                .execute()
+            )
+            return res is not None and hasattr(res, 'data') and bool(res.data)
+        except Exception as e:
+            print(f"Error saving click log: {e}")
+            return False
+    
+    def delete_click_log(self, user_id: str, log_date: str) -> bool:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+        
+        try:
+            res = (
+                self.supabase
+                .table("progress_logs")
+                .delete()
+                .eq("user_id", user_id)
+                .eq("log_date", log_date)
+                .execute()
+            )
+            return res is not None and (
+                hasattr(res, 'status_code') and res.status_code == 204
+                or hasattr(res, 'data')
+            )
+        except Exception as e:
+            print(f"Error deleting click log: {e}")
+            return False
+    
+    def reset_click_logs(self, user_id: str) -> bool:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+        
+        try:
+            res = (
+                self.supabase
+                .table("progress_logs")
+                .delete()
+                .eq("user_id", user_id)
+                .execute()
+            )
+            return res is not None and (
+                hasattr(res, 'status_code') and res.status_code == 204
+                or hasattr(res, 'data')
+            )
+        except Exception as e:
+            print(f"Error resetting click logs: {e}")
+            return False
+    
+    # -------- history --------
+    def load_history(self, user_id: str) -> list:
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+        
+        try:
+            res = (
+                self.supabase
+                .table("habit_history")
+                .select("*")
+                .eq("user_id", user_id)
+                .order("archived_at", desc=True)
+                .execute()
+            )
+            
+            if res and hasattr(res, 'data') and res.data:
+                return res.data
+            return []
+        except Exception as e:
+            print(f"Error loading history: {e}")
+            return []
+    
+    def save_history(self, record: dict) -> bool:
+        # user_idのバリデーション
+        if 'user_id' in record and not self._validate_user_id(record['user_id']):
+            raise ValueError("Invalid user_id format")
+        
+        # habit_nameのバリデーション
+        if 'habit_name' in record and not self._validate_habit_name(record['habit_name']):
+            raise ValueError("Invalid habit name")
+        
+        try:
+            res = (
+                self.supabase
+                .table("habit_history")
+                .insert(record)
+                .execute()
+            )
+            return res is not None and hasattr(res, 'data') and bool(res.data)
+        except Exception as e:
+            print(f"Error saving history: {e}")
+            return False
+    
+    # -------- habits --------
+    def delete_user_habit(self, user_id: str) -> bool:
+        """現在の習慣を削除"""
+        if not self._validate_user_id(user_id):
+            raise ValueError("Invalid user_id format")
+        
+        try:
+            res = (
+                self.supabase
+                .table("habits")
+                .delete()
+                .eq("user_id", user_id)
+                .execute()
+            )
+            return res is not None
+        except Exception as e:
+            print(f"Error deleting habit: {e}")
+            return False
