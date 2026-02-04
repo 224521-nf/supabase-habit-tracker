@@ -188,10 +188,9 @@ def render_login():
                 try:
                     auth.login(email, password)
                     st.success("ログイン成功！")
-                    time.sleep(0.5)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"メールアドレスまたはパスワードが間違っています")
+                    st.error(f"認証エラー: {e}")
         
         with tab2:
             email = st.text_input("メールアドレス", key="signup_email")
@@ -211,7 +210,7 @@ def render_login():
                     st.success("登録成功！ログインしてください")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"パスワードの形式が正しくありません。英小文字・英大文字・数字・記号をそれぞれ1文字以上含めてください。")
+                    st.error(f"登録エラー: {e}")
 
 # ------------------------------
 # 共通UI
@@ -240,10 +239,9 @@ def render_progress_chart(logs, max_days=30):
     
     df = pd.DataFrame(logs)
     df.index = range(1, len(df) + 1)
-    df["completion_time"] = df["completion_hour"].apply(HabitTracker.hour_to_hhmm)
 
     with st.expander("1クリックごとの達成時間", expanded=False):
-        st.write(df[["log_date", "completion_time"]])
+        st.write(df[["log_date", "completion_hour"]])
         
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
@@ -251,15 +249,9 @@ def render_progress_chart(logs, max_days=30):
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
     
-    # 時分に変換
-    total_minutes = round(avg_hour * 60)
-    avg_h = total_minutes // 60
-    avg_m = total_minutes % 60
-    avg_time_str = f"{avg_h:02d}:{avg_m:02d}"
-    
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間",avg_time_str, help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間", f"{avg_hour:.1f}時", help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
@@ -271,13 +263,10 @@ def render_progress_chart(logs, max_days=30):
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
             color="#ff4b4b", linewidth=2.5, markersize=8)
     
-    yticks = range(0, 25, 2)
-    
     ax.set_ylim(-1, 24)
     ax.set_xlim(1, 30)
-    ax.set_yticks(yticks)
+    ax.set_yticks(range(0, 24, 2))
     ax.set_xticks(range(1, 31))
-    ax.set_yticklabels([HabitTracker.hour_to_hhmm(h) for h in yticks])
     ax.set_ylabel("click_hour", fontsize=12, fontweight='bold')
     ax.set_xlabel("click_count", fontsize=12, fontweight='bold')
     ax.grid(True, linestyle='--', alpha=0.6)
@@ -321,8 +310,8 @@ def render_settings(user_id):
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="シンプルで具体的な習慣にしましょう！",
-        max_chars = 30 # 最大文字数制限
+        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
+        max_chars=100 # 最大文字数制限
     )
     
     st.write("")
@@ -336,12 +325,15 @@ def render_settings(user_id):
             return
         
         # 長さチェック
-        if len(name) >= 30:
-            st.error("⚠️ 習慣名は30文字以内で入力してください")
+        if len(name) > 100:
+            st.error("⚠️ 習慣名は100文字以内で入力してください")
             return
         
-        if '5分' in name or '５分' in name or len(name) <= 20:
+        if '5分' in name or '５分' in name or len(name) < 30:
             st.success("✅ 良い習慣です！継続しやすそうですね")
+        elif len(name) > 50:
+            st.warning("⚠️ 少し長すぎるかも。もっとシンプルにしてみましょう")
+    
     
     # ステップ2: 時間設定
     st.markdown("### 実行する時間を決める")
@@ -482,7 +474,7 @@ def render_challenge(user_id):
         
         st.markdown(
             """
-            <p style="font-size: 21px;　text-align: center;">
+            <p style="font-size: 21px;">
                 習慣の連続日数が2日間更新されなかったため、0に初期化されました。
             </p>
             """,
@@ -545,21 +537,21 @@ def render_challenge(user_id):
     
     st.write("")
     
-    # # デバッグ情報
-    # with st.expander("🔧 開発者用デバッグ情報", expanded=False):
-    #     st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
-    #     st.write(f"連続日数: {count}")
-    #     st.write(f"全ログ: {logs}")
+    # デバッグ情報
+    with st.expander("🔧 開発者用デバッグ情報", expanded=False):
+        st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
+        st.write(f"連続日数: {count}")
+        st.write(f"全ログ: {logs}")
         
-    #     if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
-    #         has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
-    #         tracker.reset_logs(user_id)
-    #         time.sleep(0.5)
-    #         three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-    #         dm.save_click_log(user_id, three_days_ago, 12)
-    #         if has_today:
-    #             dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
-    #         st.rerun()
+        if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
+            has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
+            tracker.reset_logs(user_id)
+            time.sleep(0.5)
+            three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+            dm.save_click_log(user_id, three_days_ago, 12)
+            if has_today:
+                dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
+            st.rerun()
 
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
@@ -748,37 +740,28 @@ def render_history(user_id):
 # Main
 # ------------------------------
 def main():
-    # 認証チェック
     if not auth.is_authenticated():
         render_login()
         return
     
-    # ユーザー情報取得
     user = auth.get_user()
-    if not user:
-        # 認証に失敗した場合
-        render_login()
-        return
-    
     user_id = user.id
     session = auth.get_session()
     
-    # セッションが有効な場合のみ認証トークンを設定
-    if session and session.access_token:
+    # セッションの有効期限チェック
+    if session:
+        import time
+        # セッションが期限切れの場合
+        if hasattr(session, 'expires_at') and session.expires_at:
+            if session.expires_at < time.time():
+                st.warning("セッションが期限切れです。再度ログインしてください。")
+                auth.logout()
+                st.rerun()
+                return
+    
+    if session.access_token:
         supabase.postgrest.auth(session.access_token)
     
-    # 定期的にセッションをリフレッシュ（4日経過したら）
-    auth_data = st.session_state.get('auth_data')
-    if auth_data:
-        try:
-            saved_at = datetime.fromisoformat(auth_data['saved_at'])
-            if (datetime.now() - saved_at).days >= 4:
-                if auth.refresh_session():
-                    print("セッションをリフレッシュしました")
-        except Exception as e:
-            print(f"セッションリフレッシュチェックエラー: {e}")
-    
-    # ページ初期化
     if "page" not in st.session_state:
         habit = dm.load_user_habit(user_id)
         if not habit or not habit.get("name"):
@@ -791,7 +774,7 @@ def main():
     
     if has_active_habit:
         st.sidebar.title("メニュー")
-        st.sidebar.markdown("   ")
+        st.sidebar.markdown("   ")  #ラジオボタン間隔調整
         
         st.sidebar.markdown(
             """
@@ -841,6 +824,7 @@ def main():
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
+    
     else:
         st.sidebar.title("メニュー")
         st.sidebar.info("習慣を設定してください")
@@ -850,7 +834,6 @@ def main():
             auth.logout()
             st.rerun()
     
-    # ページレンダリング
     if st.session_state.page == "settings":
         render_settings(user_id)
     elif st.session_state.page == "challenge":
