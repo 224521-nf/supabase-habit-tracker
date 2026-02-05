@@ -94,3 +94,9 @@ class HabitTracker:
         days_since_last = (datetime.date.today() - last_date_obj).days
         
         return days_since_last > threshold
+    
+    def hour_to_hhmm(hour_float):
+        total_minutes = round(hour_float * 60)
+        h = total_minutes // 60
+        m = total_minutes % 60
+        return f"{h:02d}:{m:02d}"
