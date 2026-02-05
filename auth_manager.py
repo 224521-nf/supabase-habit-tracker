@@ -47,9 +47,10 @@ class AuthManager:
         """ログアウト"""
         try:
             self.supabase.auth.sign_out()
+            st.session_state.user = None
+            st.session_state.session = None
         except Exception as e:
             print(f"ログアウトエラー: {e}")
-        finally:
             # エラーが発生してもセッションはクリア
             st.session_state.user = None
             st.session_state.session = None
@@ -62,46 +63,20 @@ class AuthManager:
         
         # Supabaseのセッションをチェック
         try:
-            response = self.supabase.auth.get_session()
-            # response.session でセッションオブジェクトにアクセス
-            if response and hasattr(response, 'session') and response.session:
-                # get_user() でユーザー情報も取得
-                user_response = self.supabase.auth.get_user()
-                if user_response and hasattr(user_response, 'user') and user_response.user:
-                    st.session_state.user = user_response.user
-                    st.session_state.session = response.session
-                    return True
-        except Exception as e:
-            print(f"認証チェックエラー: {e}")
+            session = self.supabase.auth.get_session()
+            if session:
+                st.session_state.user = session.user
+                st.session_state.session = session
+                return True
+        except:
+            pass
         
         return False
     
     def get_user(self):
         """現在のユーザーを取得"""
-        if not st.session_state.user:
-            # セッション状態にない場合、Supabaseから取得を試みる
-            try:
-                response = self.supabase.auth.get_user()
-                if response and hasattr(response, 'user') and response.user:
-                    st.session_state.user = response.user
-                    return response.user
-            except Exception as e:
-                print(f"ユーザー取得エラー: {e}")
-                return None
-        
         return st.session_state.user
     
     def get_session(self):
         """現在のセッションを取得"""
-        if not st.session_state.session:
-            # セッション状態にない場合、Supabaseから取得を試みる
-            try:
-                response = self.supabase.auth.get_session()
-                if response and hasattr(response, 'session') and response.session:
-                    st.session_state.session = response.session
-                    return response.session
-            except Exception as e:
-                print(f"セッション取得エラー: {e}")
-                return None
-        
         return st.session_state.session

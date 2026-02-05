@@ -55,8 +55,7 @@ class HabitTracker:
         """今日の習慣の達成ログを保存する"""
         now = datetime.datetime.now()
         log_date = now.strftime(DATE_FORMAT)
-        # 分も含めた時刻（グラフがよりきれいになる）
-        completion_hour = now.hour + now.minute / 60.0
+        completion_hour = now.hour
         self.data_manager.save_click_log(user_id, log_date, completion_hour)
     
     def delete_today_log(self, user_id: str):

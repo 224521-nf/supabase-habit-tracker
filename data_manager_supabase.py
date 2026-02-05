@@ -1,44 +1,11 @@
 from supabase import Client
-import streamlit as st
 
 class DataManagerSupabase:
     def __init__(self, supabase: Client):
         self.supabase = supabase
     
-    def _validate_user_id(self, user_id: str) -> bool:
-        """user_idのフォーマットを検証"""
-        if not user_id or not isinstance(user_id, str):
-            return False
-        # SupabaseのUUIDフォーマットを検証
-        import re
-        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-        return bool(re.match(uuid_pattern, user_id, re.IGNORECASE))
-    
-    def _validate_habit_name(self, name: str) -> bool:
-        """習慣名のバリデーション"""
-        if not name or not isinstance(name, str):
-            return False
-        if len(name) > 100:
-            return False
-        # 危険な文字列のチェック
-        dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onclick=']
-        name_lower = name.lower()
-        return not any(pattern in name_lower for pattern in dangerous_patterns)
-    
-    def _validate_time_format(self, time_str: str) -> bool:
-        """時刻フォーマットのバリデーション"""
-        if not time_str or not isinstance(time_str, str):
-            return False
-        import re
-        # HH:MM形式のみ許可
-        time_pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
-        return bool(re.match(time_pattern, time_str))
-    
     # -------- habits --------
     def load_user_habit(self, user_id: str) -> dict:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-    
         try:
             res = (
                 self.supabase
@@ -60,14 +27,6 @@ class DataManagerSupabase:
             return {}
     
     def save_user_habit(self, user_id: str, name: str, target_time: str) -> bool:
-        # バリデーション
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        if not self._validate_habit_name(name):
-            raise ValueError("Invalid habit name")
-        if not self._validate_time_format(target_time):
-            raise ValueError("Invalid time format")
-        
         try:
             data = {
                 "user_id": user_id,
@@ -88,9 +47,6 @@ class DataManagerSupabase:
     
     # -------- progress_logs --------
     def load_click_logs(self, user_id: str) -> list:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        
         try:
             res = (
                 self.supabase
@@ -108,23 +64,16 @@ class DataManagerSupabase:
             print(f"Error loading click logs: {e}")
             return []
     
-    def save_click_log(self, user_id: str, log_date: str, hour: float) -> bool:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-    
-        # hour のバリデーション（float も許可）
-        if not isinstance(hour, (int, float)) or hour < 0 or hour >= 24:
-            raise ValueError("Invalid hour value")
-    
+    def save_click_log(self, user_id: str, log_date: str, hour: int) -> bool:
         try:
             res = (
                 self.supabase
                 .table("progress_logs")
                 .upsert(
                     {
-                    "user_id": user_id,
-                    "log_date": log_date,
-                    "completion_hour": hour,  # float でも保存可能
+                        "user_id": user_id,
+                        "log_date": log_date,
+                        "completion_hour": hour,
                     },
                     on_conflict="user_id,log_date"
                 )
@@ -136,9 +85,6 @@ class DataManagerSupabase:
             return False
     
     def delete_click_log(self, user_id: str, log_date: str) -> bool:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        
         try:
             res = (
                 self.supabase
@@ -148,6 +94,7 @@ class DataManagerSupabase:
                 .eq("log_date", log_date)
                 .execute()
             )
+            # deleteの場合はstatus_codeをチェック
             return res is not None and (
                 hasattr(res, 'status_code') and res.status_code == 204
                 or hasattr(res, 'data')
@@ -157,9 +104,6 @@ class DataManagerSupabase:
             return False
     
     def reset_click_logs(self, user_id: str) -> bool:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        
         try:
             res = (
                 self.supabase
@@ -168,6 +112,7 @@ class DataManagerSupabase:
                 .eq("user_id", user_id)
                 .execute()
             )
+            # deleteの場合はstatus_codeをチェック
             return res is not None and (
                 hasattr(res, 'status_code') and res.status_code == 204
                 or hasattr(res, 'data')
@@ -178,9 +123,6 @@ class DataManagerSupabase:
     
     # -------- history --------
     def load_history(self, user_id: str) -> list:
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        
         try:
             res = (
                 self.supabase
@@ -199,14 +141,6 @@ class DataManagerSupabase:
             return []
     
     def save_history(self, record: dict) -> bool:
-        # user_idのバリデーション
-        if 'user_id' in record and not self._validate_user_id(record['user_id']):
-            raise ValueError("Invalid user_id format")
-        
-        # habit_nameのバリデーション
-        if 'habit_name' in record and not self._validate_habit_name(record['habit_name']):
-            raise ValueError("Invalid habit name")
-        
         try:
             res = (
                 self.supabase
@@ -222,9 +156,6 @@ class DataManagerSupabase:
     # -------- habits --------
     def delete_user_habit(self, user_id: str) -> bool:
         """現在の習慣を削除"""
-        if not self._validate_user_id(user_id):
-            raise ValueError("Invalid user_id format")
-        
         try:
             res = (
                 self.supabase
