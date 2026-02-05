@@ -108,23 +108,23 @@ class DataManagerSupabase:
             print(f"Error loading click logs: {e}")
             return []
     
-    def save_click_log(self, user_id: str, log_date: str, hour: int) -> bool:
+    def save_click_log(self, user_id: str, log_date: str, hour: float) -> bool:
         if not self._validate_user_id(user_id):
             raise ValueError("Invalid user_id format")
-        
-        # hour のバリデーション
-        if not isinstance(hour, int) or hour < 0 or hour > 23:
+    
+        # hour のバリデーション（float も許可）
+        if not isinstance(hour, (int, float)) or hour < 0 or hour >= 24:
             raise ValueError("Invalid hour value")
-        
+    
         try:
             res = (
                 self.supabase
                 .table("progress_logs")
                 .upsert(
                     {
-                        "user_id": user_id,
-                        "log_date": log_date,
-                        "completion_hour": hour,
+                    "user_id": user_id,
+                    "log_date": log_date,
+                    "completion_hour": hour,  # float でも保存可能
                     },
                     on_conflict="user_id,log_date"
                 )
