@@ -17,23 +17,32 @@ from habit_tracker import HabitTracker
 def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
     """ユーザーにLINE通知を送信"""
     try:
+        # user_id検証を追加
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        if not re.match(uuid_pattern, user_id, re.IGNORECASE):
+            return False
+        
+        # メッセージの長さ制限（DoS対策）
+        if len(message) > 1000:
+            message = message[:1000] + "..."
+        
         # LINE User IDを取得
         result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
         
         if not result.data:
-            # 設定がない場合はスキップ
             return True
         
         settings = result.data[0]
         if not settings.get("notification_enabled", False):
-            # 通知が無効の場合はスキップ
             return True
         
         line_user_id = settings.get("line_user_id")
         if not line_user_id:
             return True
         
-        # 修正: invoke_optionsを使う
+        # レート制限チェック（Supabase Functionsで実装推奨）
+        
         response = supabase.functions.invoke(
             'send-line-notifications',
             invoke_options={
@@ -44,16 +53,16 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
             }
         )
         
-        # レスポンスの確認
         if hasattr(response, 'error') and response.error:
-            st.error(f"LINE通知エラー: {response.error}")
+            # エラーログに記録（ユーザーには詳細を表示しない）
+            print(f"LINE通知エラー: {response.error}")
             return False
         
         return True
         
     except Exception as e:
+        # エラーログに記録（ユーザーには詳細を表示しない）
         print(f"LINE通知エラー: {e}")
-        st.error(f"エラー: {e}")
         return False
 
 # ------------------------------
@@ -278,22 +287,22 @@ def render_settings(user_id):
     st.write("")
     
     # ステップ1: 習慣の内容
-    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
+    st.markdown("### ステップ1: 習慣の内容を決める")
     
     with st.expander("💡 習慣化のコツを見る", expanded=False):
         st.markdown("""
-**習慣を継続させる3つのポイント:**
-1. **目標のハードルを下げる** - 5分でできることから始めよう
-2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
-3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
+            **習慣を継続させる3つのポイント:**
+            1. **目標のハードルを下げる** - 5分でできることから始めよう
+            2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
+            3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
 
-**おすすめの習慣例:**
-- 🏃‍♂️ 5分間のストレッチ
-- 📚 参考書を3ページ読む
-- 🧹 机の上を整理する
-- 💧 水を1杯飲む
-- 📱 SNSを見る前に深呼吸3回
-        """)
+            **おすすめの習慣例:**
+            - 5分間のストレッチ
+            - 参考書を3ページ読む
+            - 机の上を整理する
+            - 5分間タイピング練習
+            - 毎日腹筋10回
+            """)
     
     habit = dm.load_user_habit(user_id)
     name = st.text_input(
@@ -314,7 +323,7 @@ def render_settings(user_id):
     st.write("")
     
     # ステップ2: 時間設定
-    st.markdown("### ⏰ ステップ2: 実行する時間を決める")
+    st.markdown("### ステップ2: 実行する時間を決める")
     
     with st.expander("💡 タイミングのコツを見る", expanded=False):
         st.markdown("""
@@ -324,10 +333,10 @@ def render_settings(user_id):
 - **毎日同じ時間** にすると自動的になりやすい
 
 **タイミングの例:**
-- 🚿 お風呂に入る前後
-- 🍽️ 食事の前後
-- 🌙 寝る前
-- ☀️ 起きてすぐ
+- お風呂に入る前後
+- 食事の前後
+- 寝る前
+- 起きてすぐ
         """)
     
     t = TIME_INPUT_DEFAULT
@@ -347,7 +356,7 @@ def render_settings(user_id):
     # 確認と開始
     if name and time_input:
         st.markdown("---")
-        st.markdown("### ✅ 設定内容の確認")
+        st.markdown("### 設定内容の確認")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -359,7 +368,7 @@ def render_settings(user_id):
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button('🚀 この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
+            if st.button(' この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
                 try:
                     result = supabase.table("habits").upsert({
                         "user_id": user_id,
@@ -369,7 +378,7 @@ def render_settings(user_id):
                     }, on_conflict="user_id").execute()
                     
                     if result and result.data:
-                        st.success("✅ 習慣を設定しました！さあ、始めましょう！")
+                        st.success(" 習慣を設定しました！さあ、始めましょう！")
                         
                         # LINE通知を送信
                         send_line_notification_to_user(
@@ -393,12 +402,14 @@ def render_challenge(user_id):
     print(f"[DEBUG] render_challenge called at {datetime.datetime.now()}", file=sys.stderr)
     
     habit = dm.load_user_habit(user_id)
-    if not habit or not habit.get("name"):
-        st.warning("まず習慣を設定してください")
-        if st.button("習慣を設定する", use_container_width=True):
-            st.session_state.page = "settings"
-            st.rerun()
-        return
+    
+    
+    # if not habit or not habit.get("name"):
+    #     st.warning("まず習慣を設定してください")
+    #     if st.button("習慣を設定する", use_container_width=True):
+    #         st.session_state.page = "settings"
+    #         st.rerun()
+    #     return
     
     # ログを最初に取得
     logs = tracker.get_logs(user_id)
@@ -433,13 +444,13 @@ def render_challenge(user_id):
             if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
                 # ここでログをリセット
                 tracker.reset_logs(user_id)
-                st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
+                st.success(f" 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
                 
                 # LINE通知を送信
                 try:
                     send_line_notification_to_user(
                         supabase,
-                        f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
+                        f" 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
                         user_id
                     )
                 except:
@@ -617,9 +628,16 @@ def render_challenge(user_id):
         )
     
     with col2:
-        display_date = last_date if last_date else "---"
-        st.metric("📅 最終記録日", display_date)
+        # デバッグ用
+        print(f"[DEBUG] last_date value: {last_date}, type: {type(last_date)}", file=sys.stderr)
+
+        # 最終記録日の表示（より厳密なチェック）
+        if last_date and last_date.strip():  # 空白文字のみの場合も考慮
+            display_date = last_date
+        else:
+            display_date = "---"
     
+    st.metric("📅 最終記録日", display_date)
     with col3:
         remaining = MAX_CHALLENGE_DAYS - count
         st.metric("🎯 残り日数", f"{remaining}日")
@@ -650,7 +668,7 @@ def render_challenge(user_id):
             try:
                 send_line_notification_to_user(
                     supabase,
-                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                    f"🏆 30日完全達成おめでとう！ \n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
                     user_id
                 )
             except:
@@ -677,8 +695,9 @@ def render_challenge(user_id):
                 st.session_state.balloons_triggered = False
                 st.rerun()
     
-    # 記録ボタン
+    # 記録ボタンまたは記録済み表示
     elif tracker.can_click_today(last_date):
+        # 記録可能な場合：記録ボタンを表示
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("今日の習慣を記録する", use_container_width=True, type="primary", 
@@ -719,22 +738,23 @@ def render_challenge(user_id):
                 
                 st.rerun()
     else:
+        # 既に記録済みの場合：記録済みメッセージと取り消しボタンを表示
         st.success("✅ 今日は既に記録済みです。素晴らしい！")
         st.info("また明日も頑張りましょう 💪")
-    
-    # 取り消しボタン
-    st.write("")
-    with st.expander("❌ 間違えて記録した場合"):
-        st.warning("本日の記録を取り消すことができます")
-        if st.button("🔄 直前の記録を取り消す"):
-            if count > 0:
-                tracker.delete_today_log(user_id)
-                st.success("記録を取り消しました。再度記録できます")
-                st.session_state.cheers_message = None
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("取り消す記録がありません")
+        
+        # 取り消しボタン（記録済みの場合のみ表示）
+        st.write("")
+        with st.expander("❌ 間違えて記録した場合"):
+            st.warning("本日の記録を取り消すことができます")
+            if st.button("🔄 直前の記録を取り消す"):
+                if count > 0:
+                    tracker.delete_today_log(user_id)
+                    st.success("記録を取り消しました。再度記録できます")
+                    st.session_state.cheers_message = None
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("取り消す記録がありません")
 
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
