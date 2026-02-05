@@ -239,10 +239,9 @@ def render_progress_chart(logs, max_days=30):
     
     df = pd.DataFrame(logs)
     df.index = range(1, len(df) + 1)
-    df["completion_time"] = df["completion_hour"].apply(HabitTracker.hour_to_hhmm)
-    
+
     with st.expander("1クリックごとの達成時間", expanded=False):
-        st.write(df[["log_date", "completion_time"]])
+        st.write(df[["log_date", "completion_hour"]])
         
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
@@ -250,15 +249,9 @@ def render_progress_chart(logs, max_days=30):
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
     
-    # 時分に変換 
-    total_minutes = round(avg_hour * 60) 
-    avg_h = total_minutes // 60 
-    avg_m = total_minutes % 60 
-    avg_time_str = f"{avg_h:02d}:{avg_m:02d}"
-    
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間", f"{avg_time_str}時", help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間", HabitTracker.hour_to_hhmm(avg_hour), help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
@@ -270,11 +263,16 @@ def render_progress_chart(logs, max_days=30):
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
             color="#ff4b4b", linewidth=2.5, markersize=8)
     
+    
+    yticks = range(0, 25, 2)
+    
     ax.set_ylim(-1, 24)
     ax.set_xlim(1, 30)
-    ax.set_yticks(range(0, 24, 2))
+    
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([HabitTracker.hour_to_hhmm(h) for h in yticks])
+    
     ax.set_xticks(range(1, 31))
-    ax.set_ylabel("click_hour", fontsize=12, fontweight='bold')
     ax.set_xlabel("click_count", fontsize=12, fontweight='bold')
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.set_title("Achievement time per click", fontsize=14, fontweight='bold', pad=20)
@@ -317,7 +315,7 @@ def render_settings(user_id):
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="５分でできるシンプルな習慣にしましょう！",
+        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
         max_chars=100 # 最大文字数制限
     )
     
@@ -750,54 +748,101 @@ def main():
     if not auth.is_authenticated():
         render_login()
         return
-    
-    user = auth.get_user()
-    user_id = user.id
-    session = auth.get_session()
-    
-    # セッションの有効期限チェック
-    if session:
-        import time
-        # セッションが期限切れの場合
-        if hasattr(session, 'expires_at') and session.expires_at:
-            if session.expires_at < time.time():
-                st.warning("セッションが期限切れです。再度ログインしてください。")
-                auth.logout()
-                st.rerun()
-                return
-    
+
+    # ------------------------------
+    # ユーザー取得（★修正ポイント）
+    # ------------------------------
+    user_response = auth.get_user()
+
+    if (
+        not user_response
+        or not hasattr(user_response, "user")
+        or user_response.user is None
+    ):
+        st.warning("セッションが無効です。再度ログインしてください。")
+        auth.logout()
+        st.rerun()
+        return
+
+    user_id = user_response.user.id
+
+    # ------------------------------
+    # セッション取得
+    # ------------------------------
+    session_response = auth.get_session()
+
+    if (
+        not session_response
+        or not hasattr(session_response, "session")
+        or session_response.session is None
+    ):
+        st.warning("セッション情報が取得できません。再度ログインしてください。")
+        auth.logout()
+        st.rerun()
+        return
+
+    session = session_response.session
+
+    # ------------------------------
+    # セッション有効期限チェック
+    # ------------------------------
+    import time
+    if hasattr(session, "expires_at") and session.expires_at:
+        if session.expires_at < time.time():
+            st.warning("セッションが期限切れです。再度ログインしてください。")
+            auth.logout()
+            st.rerun()
+            return
+
+    # ------------------------------
+    # Supabase に access_token 設定
+    # ------------------------------
     if session.access_token:
         supabase.postgrest.auth(session.access_token)
-    
+
+    # ------------------------------
+    # 初期ページ判定
+    # ------------------------------
     if "page" not in st.session_state:
         habit = dm.load_user_habit(user_id)
         if not habit or not habit.get("name"):
             st.session_state.page = "settings"
         else:
             st.session_state.page = "challenge"
-    
+
     habit = dm.load_user_habit(user_id)
     has_active_habit = habit and habit.get("name")
-    
+
+    # ------------------------------
+    # サイドバー
+    # ------------------------------
     if has_active_habit:
         st.sidebar.title("メニュー")
-        st.sidebar.markdown("   ")  #ラジオボタン間隔調整
-        
+        st.sidebar.markdown("   ")
+
         st.sidebar.markdown(
             """
             <style>
-            section[data-testid = "stSidebar"] div[role = "radiogroup"] > label {
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label {
                 margin-bottom: 14px;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
-        
+
         page_options = ["challenge", "history"]
-        page_labels = {"challenge": "**記録画面**", "history": "**履歴画面**"}
-        current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
-        
+        page_labels = {
+            "challenge": "**習慣クリック画面**",
+            "history": "**履歴画面**"
+        }
+
+        current_index = (
+            page_options.index(st.session_state.page)
+            if st.session_state.page in page_options
+            else 0
+        )
+
         page = st.sidebar.radio(
             "移動",
             options=page_options,
@@ -805,48 +850,53 @@ def main():
             index=current_index,
             label_visibility="collapsed"
         )
-        
+
         if page != st.session_state.page:
             st.session_state.page = page
             st.rerun()
-        
+
         st.sidebar.markdown("---")
-        
+
         # LINE通知設定
         with st.sidebar:
             st.write("### LINE通知設定")
             render_line_settings(user_id, supabase)
-        
+
         st.sidebar.markdown("---")
-        
+
         # 現在の習慣情報（XSS対策）
+        import html
         st.sidebar.markdown("### 現在の習慣")
-        safe_habit_name = html.escape(habit['name'])
-        safe_target_time = html.escape(habit['target_time'])
-        st.sidebar.write(f"{safe_habit_name}")
+        safe_habit_name = html.escape(habit["name"])
+        safe_target_time = html.escape(habit["target_time"])
+        st.sidebar.write(safe_habit_name)
         st.sidebar.write(f"開始時刻 {safe_target_time}")
-        
+
         st.sidebar.markdown("---")
-        
+
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
-    
+
     else:
         st.sidebar.title("メニュー")
         st.sidebar.info("習慣を設定してください")
         st.sidebar.markdown("---")
-        
+
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
-    
+
+    # ------------------------------
+    # ページ描画
+    # ------------------------------
     if st.session_state.page == "settings":
         render_settings(user_id)
     elif st.session_state.page == "challenge":
         render_challenge(user_id)
     elif st.session_state.page == "history":
         render_history(user_id)
+
 
 if __name__ == "__main__":
     main()
