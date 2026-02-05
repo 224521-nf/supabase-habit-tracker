@@ -628,8 +628,13 @@ def render_challenge(user_id):
         )
     
     with col2:
-        display_date = last_date if (last_date is not None and last_date != "") else "---"
-        st.metric("📅 最終記録日", display_date)
+        # 最終記録日の表示を修正（Noneを明示的に処理）
+        if last_date is None or last_date == "":
+            display_date = "---"
+        else:
+            display_date = last_date
+    
+    st.metric("📅 最終記録日", display_date)
     
     with col3:
         remaining = MAX_CHALLENGE_DAYS - count
