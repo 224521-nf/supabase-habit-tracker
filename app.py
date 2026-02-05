@@ -628,12 +628,9 @@ def render_challenge(user_id):
         )
     
     with col2:
-        # 1. last_date が None, 空文字, あるいは特定の無効値でないかチェック
-        # get_click_status が None を返した場合、ここを通ります
-        if last_date is None or str(last_date).strip() in ["", "None", "False"]:
+        if not last_date or str(last_date).strip() == "None":
             display_date = "---"
         else:
-            # 2. 有効な日付がある場合のみそのまま表示
             display_date = last_date
             
         st.metric("📅 最終記録日", display_date)
