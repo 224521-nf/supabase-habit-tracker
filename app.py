@@ -258,7 +258,7 @@ def render_progress_chart(logs, max_days=30):
     
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間", f"{avg_time_str:.1f}時", help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間", f"{avg_time_str}時", help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
