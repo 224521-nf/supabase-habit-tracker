@@ -14,28 +14,34 @@ class HabitTracker:
         """現在のクリック状況（連続日数、最新日）を取得する"""
         if not logs:
             return 0, None
-        
-        # 最新のログ日付を取得
-        last_click_date = logs[0]["log_date"]
-        
+
+        last_click_date = logs[0].get("log_date")
+
+        # 空・None・空白対策
+        if not last_click_date or str(last_click_date).strip() == "":
+            return 0, None
+
         # ログを日付順にソート（新しい順）
-        sorted_logs = sorted(logs, key=lambda x: x['log_date'], reverse=True)
-        
-        # 連続日数をカウント
+        sorted_logs = sorted(logs, key=lambda x: x["log_date"], reverse=True)
+
         consecutive_count = 0
-        expected_date = datetime.datetime.strptime(last_click_date, DATE_FORMAT).date()
-        
+        expected_date = datetime.datetime.strptime(
+            last_click_date, DATE_FORMAT
+        ).date()
+
         for log in sorted_logs:
-            log_date = datetime.datetime.strptime(log['log_date'], DATE_FORMAT).date()
-            
+            log_date = datetime.datetime.strptime(
+                log["log_date"], DATE_FORMAT
+            ).date()
+
             if log_date == expected_date:
                 consecutive_count += 1
-                expected_date = log_date - datetime.timedelta(days=1)
+                expected_date -= datetime.timedelta(days=1)
             else:
-                # 日付が飛んでいる場合は連続が途切れている
                 break
-        
+
         return consecutive_count, last_click_date
+
     
     def is_completed(self, count: int) -> bool:
         """チャレンジ完了（MAX_CHALLENGE_DAYSに達したか）を判定する"""
