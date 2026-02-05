@@ -5,7 +5,6 @@ import time
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
-import html
 from supabase import create_client, Client
 from constants import *
 from auth_manager import AuthManager
@@ -18,15 +17,6 @@ from habit_tracker import HabitTracker
 def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
     """ユーザーにLINE通知を送信"""
     try:
-        # user_id検証を追加
-        import re
-        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-        if not re.match(uuid_pattern, user_id, re.IGNORECASE):
-            return False
-        
-        # メッセージの長さ制限（DoS対策）
-        if len(message) > 1000:
-            message = message[:1000] + "..."
         # LINE User IDを取得
         result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
         
@@ -56,13 +46,14 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
         
         # レスポンスの確認
         if hasattr(response, 'error') and response.error:
-            print(f"LINE通知エラー: {response.error}")
+            st.error(f"LINE通知エラー: {response.error}")
             return False
         
         return True
         
     except Exception as e:
         print(f"LINE通知エラー: {e}")
+        st.error(f"エラー: {e}")
         return False
 
 # ------------------------------
@@ -224,10 +215,11 @@ def render_progress_bar(current, total):
 def check_milestone(count):
     """マイルストーンをチェックして特別なメッセージを返す"""
     milestones = {
-        3:  ("🌿 3日目達成！！", "素晴らしいスタートです！"),
-        7:  ("💪 1週間達成！！", "習慣化の第一歩をクリアしました！"),
-        15: ("🔥 15日間達成！！", "もう折り返し地点にきました！この調子でいきましょう！"),
-        20: ("🌟 20日間達成！！", "習慣が身についてきました！あと少しです！"),
+        3: ("🌱", "3日目突破！", "素晴らしいスタートです！"),
+        7: ("🔥", "1週間達成！", "習慣化の第一歩をクリアしました！"),
+        14: ("💪", "2週間達成！", "もう折り返し地点です！すごい！"),
+        21: ("⭐", "3週間達成！", "習慣が身についてきました！あと少し！"),
+        30: ("🏆", "30日完全達成！", "おめでとうございます！完璧です！")
     }
     return milestones.get(count, None)
 
@@ -238,11 +230,6 @@ def render_progress_chart(logs, max_days=30):
         return
     
     df = pd.DataFrame(logs)
-    df.index = range(1, len(df) + 1)
-
-    with st.expander("1クリックごとの達成時間", expanded=False):
-        st.write(df[["log_date", "completion_hour"]])
-        
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
     
@@ -251,7 +238,7 @@ def render_progress_chart(logs, max_days=30):
     
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間", HabitTracker.hour_to_hhmm(avg_hour), help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間", f"{avg_hour:.1f}時", help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
@@ -263,16 +250,11 @@ def render_progress_chart(logs, max_days=30):
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
             color="#ff4b4b", linewidth=2.5, markersize=8)
     
-    
-    yticks = range(0, 25, 2)
-    
     ax.set_ylim(-1, 24)
     ax.set_xlim(1, 30)
-    
-    ax.set_yticks(yticks)
-    ax.set_yticklabels([HabitTracker.hour_to_hhmm(h) for h in yticks])
-    
+    ax.set_yticks(range(0, 24, 2))
     ax.set_xticks(range(1, 31))
+    ax.set_ylabel("click_hour", fontsize=12, fontweight='bold')
     ax.set_xlabel("click_count", fontsize=12, fontweight='bold')
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.set_title("Achievement time per click", fontsize=14, fontweight='bold', pad=20)
@@ -291,71 +273,62 @@ def render_settings(user_id):
     """習慣を設定するページ（改善版）"""
     # ヘッダー
     st.markdown("<h1 style='text-align: center;'>🎯 新しい習慣を始めよう</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #666; font-size: 1.4rem;'>30日間、一つの習慣に集中して人生を変えましょう</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666; font-size: 1.1rem;'>30日間、一つの習慣に集中して人生を変えましょう</p>", unsafe_allow_html=True)
+    st.write("")
     st.write("")
     
     # ステップ1: 習慣の内容
-    st.markdown("### 習慣の内容を決める")
+    st.markdown("### 📝 ステップ1: 習慣の内容を決める")
+    
     with st.expander("💡 習慣化のコツを見る", expanded=False):
-        st.markdown("""    
-            **習慣を継続させる3つのポイント:**
-            1. **目標のハードルを下げる** - 5分でできることから始めよう
-            2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
-            3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
-        
-            **おすすめの習慣例:**
-            - 5分間のストレッチ
-            - 参考書を3ページ読む
-            - 机の上を整理する
-            - 腕立て伏せ10回
-            - 毎日5分タイピング練習
-            """)
+        st.markdown("""
+**習慣を継続させる3つのポイント:**
+1. **目標のハードルを下げる** - 5分でできることから始めよう
+2. **具体的にする** - 「運動する」ではなく「腕立て10回」のように
+3. **楽しむ** - 自分が少しでも楽しめることを選ぼう
+
+**おすすめの習慣例:**
+- 🏃‍♂️ 5分間のストレッチ
+- 📚 参考書を3ページ読む
+- 🧹 机の上を整理する
+- 💧 水を1杯飲む
+- 📱 SNSを見る前に深呼吸3回
+        """)
     
     habit = dm.load_user_habit(user_id)
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
-        max_chars=100 # 最大文字数制限
+        placeholder="例: 朝5分ストレッチをする",
+        help="できるだけシンプルで具体的に！"
     )
-    
-    st.write("")
-    st.write("")
     
     # 入力内容のバリデーション
     if name:
-        # 危険な文字列のチェック
-        if '<script' in name.lower() or 'javascript:' in name.lower():
-            st.error("⚠️ 無効な文字が含まれています")
-            return
-        
-        # 長さチェック
-        if len(name) > 100:
-            st.error("⚠️ 習慣名は100文字以内で入力してください")
-            return
-        
         if '5分' in name or '５分' in name or len(name) < 30:
             st.success("✅ 良い習慣です！継続しやすそうですね")
         elif len(name) > 50:
             st.warning("⚠️ 少し長すぎるかも。もっとシンプルにしてみましょう")
     
+    st.write("")
+    st.write("")
     
     # ステップ2: 時間設定
-    st.markdown("### 実行する時間を決める")
+    st.markdown("### ⏰ ステップ2: 実行する時間を決める")
     
     with st.expander("💡 タイミングのコツを見る", expanded=False):
         st.markdown("""
-            **効果的なタイミングの選び方:**
-            - **既存の習慣の前後** につなげると続きやすい
-            - **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
-            - **毎日同じ時間** にすると定着しやすい
+**効果的なタイミングの選び方:**
+- **既存の習慣の前後** につなげると続きやすい
+- **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
+- **毎日同じ時間** にすると自動的になりやすい
 
-            **タイミングの例:**
-            - お風呂に入る前後
-            - 食事の前後
-            - 寝る前
-            - 起きてすぐ
-                    """)
+**タイミングの例:**
+- 🚿 お風呂に入る前後
+- 🍽️ 食事の前後
+- 🌙 寝る前
+- ☀️ 起きてすぐ
+        """)
     
     t = TIME_INPUT_DEFAULT
     if habit and habit.get("target_time"):
@@ -367,21 +340,26 @@ def render_settings(user_id):
     
     time_input = st.time_input(
         '目標時刻',
-        value=t
+        value=t,
+        help="毎日この時間に実行することを目指しましょう"
     )
     
     # 確認と開始
     if name and time_input:
         st.markdown("---")
-        st.markdown("### 設定内容の確認")
+        st.markdown("### ✅ 設定内容の確認")
         
-        st.info(f"**習慣: {name}**")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**習慣:** {name}")
+        with col2:
+            st.info(f"**時刻:** {time_input.strftime('%H:%M')}")
         
-        st.info(f"**開始時刻: {time_input.strftime('%H:%M')}**")
+        st.warning("⚠️ **注意:** 一度開始すると、30日達成まで変更できません")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button('この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
+            if st.button('🚀 この習慣で30日チャレンジを開始！', use_container_width=True, type="primary"):
                 try:
                     result = supabase.table("habits").upsert({
                         "user_id": user_id,
@@ -409,10 +387,11 @@ def render_settings(user_id):
                     st.error(f"エラーが発生しました: {e}")
 
 def render_challenge(user_id):
-    """習慣に挑戦し、進捗を記録するページ"""
-    import time
-
-    # 1. データのロード
+    """習慣に挑戦し、進捗を記録するページ（改善版）"""
+    # デバッグ: この関数が呼ばれたことをログに記録
+    import sys
+    print(f"[DEBUG] render_challenge called at {datetime.datetime.now()}", file=sys.stderr)
+    
     habit = dm.load_user_habit(user_id)
     if not habit or not habit.get("name"):
         st.warning("まず習慣を設定してください")
@@ -420,83 +399,43 @@ def render_challenge(user_id):
             st.session_state.page = "settings"
             st.rerun()
         return
-
-    # XSS対策: HTMLエスケープ
-    safe_habit_name = html.escape(habit['name']) if habit.get('name') else ""
-    safe_target_time = html.escape(habit['target_time']) if habit.get('target_time') else ""
     
-    # 2. ログの取得
+    # ログを最初に取得
     logs = tracker.get_logs(user_id)
     count, last_date = tracker.get_click_status(logs)
-    today_obj = datetime.date.today()
-    
-    # Session Stateの初期化（最初に移動）
-    if 'milestone_message' not in st.session_state:
-        st.session_state.milestone_message = None
-    
-    if 'balloons_triggered' not in st.session_state:
-        st.session_state.balloons_triggered = False
     
     # ========================================
-    # 最優先: リセット判定（厳格モード）
+    # 最優先: リセット判定（画面表示前に実行）
     # ========================================
     should_show_reset = False
+    if last_date:
+        last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+        days_since_last = (datetime.date.today() - last_date_obj).days
+        
+        # 2日以上経過している場合（今日が3日目以降）
+        if days_since_last > MISS_DAYS_THRESHOLD:
+            should_show_reset = True
     
-    # ログを日付順（新しい順）に並べる
-    sorted_logs = sorted(
-        logs, 
-        key=lambda x: datetime.datetime.strptime(x['log_date'], DATE_FORMAT).date(), 
-        reverse=True
-    )
-
-    if sorted_logs:
-        latest_log_date = datetime.datetime.strptime(sorted_logs[0]['log_date'], DATE_FORMAT).date()
-        
-        if latest_log_date == today_obj:
-            if len(sorted_logs) > 1:
-                prev_log_date = datetime.datetime.strptime(sorted_logs[1]['log_date'], DATE_FORMAT).date()
-                if (today_obj - prev_log_date).days > MISS_DAYS_THRESHOLD:
-                    should_show_reset = True
-        else:
-            if (today_obj - latest_log_date).days > MISS_DAYS_THRESHOLD:
-                should_show_reset = True
-    else:
-        created_at_raw = habit.get("created_at")
-        if created_at_raw:
-            try:
-                c_date_str = str(created_at_raw)[:10]
-                c_date_obj = datetime.datetime.strptime(c_date_str, "%Y-%m-%d").date()
-                if (today_obj - c_date_obj).days > MISS_DAYS_THRESHOLD:
-                    should_show_reset = True
-            except:
-                pass
-
-    # --- リセット画面の表示 ---
+    # リセット画面を表示するべき場合（ヘッダーより前に判定）
     if should_show_reset:
-        st.markdown(f"<h1 style='text-align: center;'>⚠️習慣がリセットされました</h1>", unsafe_allow_html=True)
-        st.write(" ")
-        st.write(" ")
-        
-        st.markdown(
-            """
-            <p style="font-size: 21px;">
-                習慣の連続日数が2日間更新されなかったため、0に初期化されました。
-            </p>
-            """,
-            unsafe_allow_html=True
-        )
-           
+        # ヘッダー（リセット画面用）
+        st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
         st.write("")
-        st.markdown("<p style='color: #999; font-weight: bold; text-align: center; font-size: 20px;'>💡 ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
+        st.markdown("### 習慣の連続日数が２日間更新されなかったため、日数を０に初期化する必要があります。")
+        st.write("")
+        st.markdown("<p style='color: #999; font-weight: bold;'>💡 習慣を続けるコツ: ハードルを下げて、毎日続けやすい内容にしましょう</p>", unsafe_allow_html=True)
         st.write("")
         st.write("")
         
         col1, col2 = st.columns(2)
+        
         with col1:
-            if st.button("再チャレンジする", use_container_width=True, type="primary"):
+            if st.button("この習慣で再チャレンジ", use_container_width=True, type="primary", key="rechallenge_btn"):
+                # ここでログをリセット
                 tracker.reset_logs(user_id)
-                st.session_state.balloons_triggered = False  # リセット時にフラグもリセット
+                st.success(f"💪 「{habit['name']}」で再チャレンジ開始！頑張りましょう！")
                 
+                # LINE通知を送信
                 try:
                     send_line_notification_to_user(
                         supabase,
@@ -505,14 +444,20 @@ def render_challenge(user_id):
                     )
                 except:
                     pass
-                st.rerun()
                 
+                time.sleep(1)
+                st.rerun()
+        
         with col2:
-            if st.button("新しい習慣に挑戦する", use_container_width=True):
-                # 履歴に保存
+            if st.button("新しい習慣を設定", use_container_width=True, key="change_habit_btn"):
+                # 現在のログを取得（削除前に取得！）
                 all_logs = dm.load_click_logs(user_id)
+                
                 if all_logs:
+                    # ログを古い順に並び替え
                     all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
+                    
+                    # 履歴に保存
                     try:
                         history_record = {
                             "user_id": user_id,
@@ -523,72 +468,179 @@ def render_challenge(user_id):
                             "log_summary": all_logs_sorted,
                         }
                         dm.save_history(history_record)
-                    except:
-                        pass
+                        st.success("📝 履歴に保存しました")
+                    except Exception as e:
+                        st.warning(f"履歴の保存でエラーが発生しました: {e}")
                 
-                tracker.reset_logs(user_id)
-                dm.delete_user_habit(user_id)
-                st.session_state.balloons_triggered = False  # リセット時にフラグもリセット
-                st.session_state.page = "settings"
-                st.rerun()
+                # 習慣とログを削除
+                try:
+                    tracker.reset_logs(user_id)
+                    dm.delete_user_habit(user_id)
+                    
+                    # セッションステートをクリア
+                    st.session_state.pop('show_reset_screen', None)
+                    st.session_state.pop('reset_screen_shown', None)
+                    st.session_state.pop('challenge_phase', None)
+                    st.session_state.pop('cheers_message', None)
+                    st.session_state.pop('milestone_message', None)
+                    st.session_state.pop('balloons_triggered', None)
+                    
+                    st.success("✅ 習慣を削除しました")
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"削除エラー: {e}")
+        
+        # リセット画面を表示したら、以降の処理をスキップ
         return
-
+    
     # ========================================
-    # メイン画面（ここから下はリセット不要な時のみ）
+    # ここから通常の画面（リセット不要の場合のみ）
     # ========================================
     
-    st.markdown(f"<h1 style='text-align: center;'>🎯 {safe_habit_name}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='text-align: center;'> 目標時間: {safe_target_time}</h3>", unsafe_allow_html=True)
-    
+    # ヘッダー（通常画面用）
+    st.markdown(f"<h1 style='text-align: center;'>🎯 {habit['name']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #666;'>目標時刻: {habit['target_time']}</p>", unsafe_allow_html=True)
     st.write("")
     
-    # デバッグ情報
-    with st.expander("🔧 開発者用デバッグ情報", expanded=False):
-        st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
-        st.write(f"連続日数: {count}")
-        st.write(f"全ログ: {logs}")
+    with st.expander("🔧 デバッグ情報（開発者用）", expanded=False):
+        st.write(f"**最終記録日:** {last_date}")
+        st.write(f"**今日の日付:** {datetime.date.today().strftime(DATE_FORMAT)}")
+        st.write(f"**連続日数(count):** {count}")
         
-        if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
-            has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
-            tracker.reset_logs(user_id)
-            time.sleep(0.5)
-            three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-            dm.save_click_log(user_id, three_days_ago, 12)
-            if has_today:
-                dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
-            st.rerun()
-
-    # 進捗表示
+        if last_date:
+            last_date_obj = datetime.datetime.strptime(last_date, DATE_FORMAT).date()
+            days_since_last = (datetime.date.today() - last_date_obj).days
+            st.write(f"**経過日数:** {days_since_last}日")
+            st.write(f"**リセット閾値:** {MISS_DAYS_THRESHOLD}日")
+            st.write(f"**リセット条件:** days_since_last({days_since_last}) > MISS_DAYS_THRESHOLD({MISS_DAYS_THRESHOLD})")
+            
+            if days_since_last > MISS_DAYS_THRESHOLD:
+                st.error(f"⚠️ リセット条件を満たしています！")
+            else:
+                st.success(f"✅ まだ{MISS_DAYS_THRESHOLD - days_since_last + 1}日以内です")
+        
+        st.write("---")
+        st.write(f"**can_click_today:** {tracker.can_click_today(last_date)}")
+        st.write(f"**全ログ数:** {len(logs)}")
+        
+        if logs:
+            st.write("**全てのログ:**")
+            for i, log in enumerate(logs, 1):
+                st.write(f"  {i}. {log}")
+        
+        st.write("---")
+        st.write("**テスト用ボタン:**")
+        st.warning("⚠️ テストボタンを押した後、手動でページをリロード（F5）してください")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🧪 最終記録日を3日前に変更", help="リセット動作をテスト", key="test_3days"):
+                with st.spinner("処理中..."):
+                    try:
+                        # ステップ1: 全ログを削除
+                        result1 = tracker.reset_logs(user_id)
+                        st.write(f"ログ削除結果: {result1}")
+                        
+                        # ステップ2: データベースに反映されるまで待つ
+                        time.sleep(1.0)
+                        
+                        # ステップ3: 削除されたか確認
+                        check_logs = dm.load_click_logs(user_id)
+                        st.write(f"削除後のログ件数: {len(check_logs)}")
+                        
+                        # ステップ4: 3日前の日付でログを1件追加
+                        three_days_ago = (datetime.date.today() - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
+                        result2 = dm.save_click_log(user_id, three_days_ago, 12)
+                        st.write(f"ログ追加結果: {result2}")
+                        
+                        # ステップ5: データベースに反映されるまで待つ
+                        time.sleep(1.0)
+                        
+                        # ステップ6: 追加されたか確認
+                        final_logs = dm.load_click_logs(user_id)
+                        st.write(f"最終ログ件数: {len(final_logs)}")
+                        if final_logs:
+                            st.write(f"最新ログ: {final_logs[0]}")
+                        
+                        st.success(f"✅ 完了！最終記録日を {three_days_ago} に設定しました")
+                        st.info("💡 手動でページをリロード（F5）してください")
+                        
+                    except Exception as e:
+                        st.error(f"❌ エラー: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
+        
+        with col2:
+            if st.button("🔄 強制リセット", help="手動でリセット", key="test_reset"):
+                with st.spinner("処理中..."):
+                    try:
+                        result = tracker.reset_logs(user_id)
+                        st.write(f"削除結果: {result}")
+                        
+                        time.sleep(1.0)
+                        
+                        # 確認
+                        check_logs = dm.load_click_logs(user_id)
+                        st.write(f"削除後のログ件数: {len(check_logs)}")
+                        
+                        st.success("✅ 全ログをリセットしました")
+                        st.info("💡 手動でページをリロード（F5）してください")
+                        
+                    except Exception as e:
+                        st.error(f"❌ エラー: {e}")
+                        import traceback
+                        st.code(traceback.format_exc())
+    
+    # Session Stateの初期化
+    if 'cheers_message' not in st.session_state:
+        st.session_state.cheers_message = None
+    if 'milestone_message' not in st.session_state:
+        st.session_state.milestone_message = None
+    if 'balloons_triggered' not in st.session_state:
+        st.session_state.balloons_triggered = False
+    
+    # プログレスバー
+    st.write("")
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
-    
     st.write("")
     
-    c1, c2, c3 = st.columns(3)
-    c1.metric("🔥 継続記録", f"{count}日")
-    c2.metric("📅 最終記録日", last_date if last_date else "---")
-    c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
-
+    # 統計情報
+    col1, col2, col3 = st.columns(3)
     
-    # マイルストーンメッセージの表示
+    with col1:
+        st.metric(
+            "🔥 連続記録",
+            f"{count}日",
+            delta=None if count == 0 else "+1" if tracker.can_click_today(last_date) else "達成済"
+        )
+    
+    with col2:
+        display_date = last_date if last_date else "---"
+        st.metric("📅 最終記録日", display_date)
+    
+    with col3:
+        remaining = MAX_CHALLENGE_DAYS - count
+        st.metric("🎯 残り日数", f"{remaining}日")
+    
+    st.write("")
+    st.markdown("---")
+    st.write("")
+    
+    # マイルストーンメッセージ
     if st.session_state.milestone_message:
-        title, message = st.session_state.milestone_message
-        
-        # タイトルとメッセージもエスケープ
-        safe_title = html.escape(title)
-        safe_message = html.escape(message)
-        
+        icon, title, message = st.session_state.milestone_message
         st.markdown(f"""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 15px; color: white; margin: 2rem 0;'>
-            <h2 style='color: white; margin: 1rem 0;'>{safe_title}</h2>
-            <p style='font-size: 1.2rem; color: #f0f0f0;'>{safe_message}</p>
+        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; margin: 2rem 0;'>
+            <div style='font-size: 4rem;'>{icon}</div>
+            <h2 style='color: white; margin: 1rem 0;'>{title}</h2>
+            <p style='font-size: 1.2rem; color: #f0f0f0;'>{message}</p>
         </div>
         """, unsafe_allow_html=True)
         st.session_state.milestone_message = None
-
-        st.markdown("---")
     
-    # 30日完全達成
+    # 30日達成
     if tracker.is_completed(count):
         if not st.session_state.balloons_triggered:
             st.balloons()
@@ -605,119 +657,90 @@ def render_challenge(user_id):
                 pass
         
         st.markdown("""
-        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-                    border-radius: 20px; color: white;'>
-            <h1 style='color: white;'>🏆 達成しました！！</h1>
-            <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 20px; color: white;'>
+            <div style='font-size: 5rem;'>🏆</div>
+            <h1 style='color: white;'>30日完全達成！</h1>
+            <p style='font-size: 1.3rem;'>おめでとうございます！あなたは素晴らしい！</p>
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("---")
+        st.write("")
+        st.write("")
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("もう一度同じ習慣をやる", use_container_width=True, type="primary"):
-                # 履歴に保存
-                all_logs = dm.load_click_logs(user_id)
-                if all_logs:
-                    all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                    try:
-                        history_record = {
-                            "user_id": user_id,
-                            "habit_name": habit["name"],
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
-                        }
-                        dm.save_history(history_record)
-                    except:
-                        pass
-                
-                tracker.reset_logs(user_id)
-                st.session_state.balloons_triggered = False  # 次のチャレンジ用にリセット
-                
-                try:
-                    send_line_notification_to_user(
-                        supabase,
-                        f"🔄 再チャレンジ開始！\n「{habit['name']}」\n\nまた今日から頑張りましょう！",
-                        user_id
-                    )
-                except:
-                    pass
-                
-                st.rerun()
-        
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button(" 次の習慣にチャレンジする", use_container_width=True, type="primary"):
-                # 履歴に保存
-                all_logs = dm.load_click_logs(user_id)
-                if all_logs:
-                    all_logs_sorted = sorted(all_logs, key=lambda x: x['log_date'])
-                    try:
-                        history_record = {
-                            "user_id": user_id,
-                            "habit_name": habit["name"],
-                            "target_time": habit["target_time"],
-                            "archived_at": datetime.datetime.now().isoformat(),
-                            "total_days": len(all_logs_sorted),
-                            "log_summary": all_logs_sorted,
-                        }
-                        dm.save_history(history_record)
-                    except:
-                        pass
-                
+            if st.button("🎉 次の習慣にチャレンジする", use_container_width=True, type="primary"):
+                tracker.archive(user_id, habit["name"], habit["target_time"])
                 tracker.reset_logs(user_id)
                 dm.delete_user_habit(user_id)
-                st.session_state.balloons_triggered = False  # 次のチャレンジ用にリセット
                 st.session_state.page = "settings"
+                st.session_state.balloons_triggered = False
                 st.rerun()
-        return
-        
-    # 記録ボタン（以下は変更なし）
+    
+    # 記録ボタン
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("今日の習慣を記録する", use_container_width=True, type="primary", help="クリックして今日の達成を記録！"):
+            if st.button("今日の習慣を記録する", use_container_width=True, type="primary", 
+                        help="クリックして今日の達成を記録！"):
                 tracker.record_today(user_id)
                 
+                # 新しいカウント
                 new_count = count + 1
                 
+                # マイルストーンチェック
                 milestone = check_milestone(new_count)
                 if milestone:
                     st.session_state.milestone_message = milestone
                     
-                    title, msg = milestone
+                    # マイルストーン達成のLINE通知
+                    icon, title, msg = milestone
                     try:
                         send_line_notification_to_user(
                             supabase,
-                            f"{title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
+                            f"{icon} {title}\n\n「{habit['name']}」\n{new_count}日連続達成！\n\n{msg}",
                             user_id
                         )
                     except:
                         pass
                     
                     st.balloons()
+                else:
+                    # 通常の応援メッセージ
+                    messages = [
+                        "🎉 今日も達成！素晴らしい！",
+                        "💪 いい調子！継続は力なり",
+                        "⭐ 小さな進歩も大きな一歩",
+                        "🔥 一歩一歩着実に前進！",
+                        "👏 今日もお疲れさま！",
+                        "🌟 完璧です！明日も頑張ろう",
+                    ]
+                    st.session_state.cheers_message = random.choice(messages)
                 
                 st.rerun()
     else:
-        st.success("✅ 今日は既に記録済みです。また明日も頑張りましょう💪")
-
-        st.write("")
-        
+        st.success("✅ 今日は既に記録済みです。素晴らしい！")
+        st.info("また明日も頑張りましょう 💪")
+    
+    # 取り消しボタン
+    st.write("")
+    with st.expander("❌ 間違えて記録した場合"):
+        st.warning("本日の記録を取り消すことができます")
         if st.button("🔄 直前の記録を取り消す"):
             if count > 0:
                 tracker.delete_today_log(user_id)
+                st.success("記録を取り消しました。再度記録できます")
+                st.session_state.cheers_message = None
                 time.sleep(1)
                 st.rerun()
             else:
                 st.error("取り消す記録がありません")
-            
+
 def render_history(user_id):
     """過去の習慣の達成履歴を表示するページ"""
-    st.markdown("<h1 style='text-align: center;'>📝習慣履歴</h1>", unsafe_allow_html=True)
-    st.write("---")
+    st.markdown("<h1 style='text-align: center;'>🏆 達成履歴</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>これまでに達成した習慣の記録</p>", unsafe_allow_html=True)
+    st.write("")
     st.write("")
     
     history = dm.load_history(user_id)
@@ -727,16 +750,16 @@ def render_history(user_id):
         st.write("30日間習慣を継続すると、ここに記録されます！")
         return
     
+    # 達成数の表示
+    st.metric("🎯 達成した習慣の数", f"{len(history)}個")
+    st.write("")
+    
     for i, r in enumerate(history, 1):
         archive_date = datetime.datetime.fromisoformat(r["archived_at"]).strftime("%Y年%m月%d日")
         log_summary = r.get("log_summary", [])
         
-         # XSS対策: エスケープ
-        safe_habit_name = html.escape(r["habit_name"])
-        safe_target_time = html.escape(r["target_time"])
-        
-        with st.expander(f'**{i}. {safe_habit_name} - {archive_date} ({r["total_days"]}日達成)**'):
-            st.markdown(f'**⏰ 目標時間:** {safe_target_time}')
+        with st.expander(f'🏅 {i}. {r["habit_name"]} - {archive_date} ({r["total_days"]}日達成)'):
+            st.markdown(f'**⏰ 目標時間:** {r["target_time"]}')
             st.markdown(f'**📅 達成日:** {archive_date}')
             st.write("")
             render_progress_chart(log_summary, r["total_days"])
@@ -745,89 +768,46 @@ def render_history(user_id):
 # Main
 # ------------------------------
 def main():
-    # 認証チェック
     if not auth.is_authenticated():
         render_login()
         return
-
-    # ------------------------------
-    # セッションとユーザー情報を取得
-    # ------------------------------
-    try:
-        # セッション取得
-        session = supabase.auth.get_session()
-        
-        if not session:
-            st.warning("セッション情報が取得できません。再度ログインしてください。")
-            auth.logout()
-            st.rerun()
-            return
-        
-        # ユーザー取得
-        user = supabase.auth.get_user()
-        
-        if not user or not hasattr(user, 'id'):
-            st.warning("ユーザー情報が取得できません。再度ログインしてください。")
-            auth.logout()
-            st.rerun()
-            return
-        
-        user_id = user.id
-        
-        # access_token を設定（必要に応じて）
-        if hasattr(session, 'access_token') and session.access_token:
-            supabase.postgrest.auth(session.access_token)
     
-    except Exception as e:
-        st.error(f"認証エラー: {e}")
-        st.warning("再度ログインしてください。")
-        auth.logout()
-        st.rerun()
-        return
-
-    # ------------------------------
-    # 初期ページ判定
-    # ------------------------------
+    user = auth.get_user()
+    user_id = user.id
+    session = auth.get_session()
+    
+    if session and session.access_token:
+        supabase.postgrest.auth(session.access_token)
+    
     if "page" not in st.session_state:
         habit = dm.load_user_habit(user_id)
         if not habit or not habit.get("name"):
             st.session_state.page = "settings"
         else:
             st.session_state.page = "challenge"
-
+    
     habit = dm.load_user_habit(user_id)
     has_active_habit = habit and habit.get("name")
-
-    # ------------------------------
-    # サイドバー
-    # ------------------------------
+    
     if has_active_habit:
         st.sidebar.title("メニュー")
-        st.sidebar.markdown("   ")
-
+        st.sidebar.markdown("   ")  #ラジオボタン間隔調整
+        
         st.sidebar.markdown(
             """
             <style>
-            section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+            section[data-testid = "stSidebar"] div[role = "radiogroup"] > label {
                 margin-bottom: 14px;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
-
+        
         page_options = ["challenge", "history"]
-        page_labels = {
-            "challenge": "**習慣クリック画面**",
-            "history": "**履歴画面**"
-        }
-
-        current_index = (
-            page_options.index(st.session_state.page)
-            if st.session_state.page in page_options
-            else 0
-        )
-
+        page_labels = {"challenge": "**習慣クリック画面**", "history": "**履歴画面**"}
+        current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
+        
         page = st.sidebar.radio(
             "移動",
             options=page_options,
@@ -835,52 +815,46 @@ def main():
             index=current_index,
             label_visibility="collapsed"
         )
-
+        
         if page != st.session_state.page:
             st.session_state.page = page
             st.rerun()
-
+        
         st.sidebar.markdown("---")
-
+        
         # LINE通知設定
         with st.sidebar:
             st.write("### LINE通知設定")
             render_line_settings(user_id, supabase)
-
+        
         st.sidebar.markdown("---")
-
-        # 現在の習慣情報（XSS対策）
-        import html
+        
+        # 現在の習慣情報
         st.sidebar.markdown("### 現在の習慣")
-        safe_habit_name = html.escape(habit["name"])
-        safe_target_time = html.escape(habit["target_time"])
-        st.sidebar.write(safe_habit_name)
-        st.sidebar.write(f"開始時刻 {safe_target_time}")
-
+        st.sidebar.write(f"{habit['name']}")
+        st.sidebar.write(f"開始時刻 {habit['target_time']}")
+        
         st.sidebar.markdown("---")
-
+        
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
-
+    
     else:
         st.sidebar.title("メニュー")
         st.sidebar.info("習慣を設定してください")
         st.sidebar.markdown("---")
-
+        
         if st.sidebar.button("  ログアウト", use_container_width=True):
             auth.logout()
             st.rerun()
-
-    # ------------------------------
-    # ページ描画
-    # ------------------------------
+    
     if st.session_state.page == "settings":
         render_settings(user_id)
     elif st.session_state.page == "challenge":
         render_challenge(user_id)
     elif st.session_state.page == "history":
         render_history(user_id)
-        
+
 if __name__ == "__main__":
     main()
