@@ -17,23 +17,30 @@ from habit_tracker import HabitTracker
 def send_line_notification_to_user(supabase: Client, message: str, user_id: str):
     """ユーザーにLINE通知を送信"""
     try:
+        # user_id検証を追加
+        import re
+        uuid_pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        if not re.match(uuid_pattern, user_id, re.IGNORECASE):
+            return False
+        
+        # メッセージの長さ制限（DoS対策）
+        if len(message) > 1000:
+            message = message[:1000] + "..."
+        
         # LINE User IDを取得
         result = supabase.table("user_line_settings").select("line_user_id, notification_enabled").eq("user_id", user_id).execute()
         
         if not result.data:
-            # 設定がない場合はスキップ
             return True
         
         settings = result.data[0]
         if not settings.get("notification_enabled", False):
-            # 通知が無効の場合はスキップ
             return True
         
         line_user_id = settings.get("line_user_id")
         if not line_user_id:
             return True
         
-        # 修正: invoke_optionsを使う
         response = supabase.functions.invoke(
             'send-line-notifications',
             invoke_options={
@@ -44,16 +51,14 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
             }
         )
         
-        # レスポンスの確認
         if hasattr(response, 'error') and response.error:
-            st.error(f"LINE通知エラー: {response.error}")
+            print(f"LINE通知エラー: {response.error}")
             return False
         
         return True
         
     except Exception as e:
         print(f"LINE通知エラー: {e}")
-        st.error(f"エラー: {e}")
         return False
 
 # ------------------------------
