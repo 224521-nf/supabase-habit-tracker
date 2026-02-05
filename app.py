@@ -636,8 +636,8 @@ def render_challenge(user_id):
             display_date = last_date
         else:
             display_date = "---"
+        st.metric("📅 最終記録日", display_date)
     
-    st.metric("📅 最終記録日", display_date)
     with col3:
         remaining = MAX_CHALLENGE_DAYS - count
         st.metric("🎯 残り日数", f"{remaining}日")
