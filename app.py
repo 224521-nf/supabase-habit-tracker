@@ -749,51 +749,42 @@ def main():
         render_login()
         return
 
+   # ------------------------------
+    # ユーザー取得（★修正）
     # ------------------------------
-    # ユーザー取得（★修正ポイント）
-    # ------------------------------
-    user_response = auth.get_user()
+    user = auth.get_user()
 
-    if (
-        not user_response
-        or not hasattr(user_response, "user")
-        or user_response.user is None
-    ):
+    if not user or not hasattr(user, "id"):
         st.warning("セッションが無効です。再度ログインしてください。")
         auth.logout()
         st.rerun()
         return
 
-    user_id = user_response.user.id
+    user_id = user.id
 
     # ------------------------------
     # セッション取得
     # ------------------------------
-    session_response = auth.get_session()
+    session = auth.get_session()
 
-    if (
-        not session_response
-        or not hasattr(session_response, "session")
-        or session_response.session is None
-    ):
+    if not session or not hasattr(session, "access_token"):
         st.warning("セッション情報が取得できません。再度ログインしてください。")
         auth.logout()
         st.rerun()
         return
-
-    session = session_response.session
 
     # ------------------------------
     # セッション有効期限チェック
     # ------------------------------
     import time
     if hasattr(session, "expires_at") and session.expires_at:
+        # expires_at は通常 Unix タイムスタンプ（秒）
         if session.expires_at < time.time():
             st.warning("セッションが期限切れです。再度ログインしてください。")
             auth.logout()
             st.rerun()
             return
-
+        
     # ------------------------------
     # Supabase に access_token 設定
     # ------------------------------

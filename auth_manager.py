@@ -28,23 +28,23 @@ class AuthManager:
     # ------------------ session / user ------------------
     def get_user(self):
         """
-        戻り値:
-          UserResponse | None
-        user_response.user.id で参照する
+        戻り値: User | None
         """
         try:
-            return self.supabase.auth.get_user()
+            response = self.supabase.auth.get_user()
+            # response は直接 User オブジェクトを返す
+            return response
         except Exception:
             return None
 
     def get_session(self):
         """
-        戻り値:
-          SessionResponse | None
-        session.session.access_token を使う
+        戻り値: Session | None
         """
         try:
-            return self.supabase.auth.get_session()
+            response = self.supabase.auth.get_session()
+            # response は直接 Session オブジェクトを返す
+            return response
         except Exception:
             return None
 
@@ -52,13 +52,10 @@ class AuthManager:
         """
         access_token が存在する場合のみ True
         """
-        session_response = self.get_session()
-
-        if not session_response:
+        try:
+            session = self.get_session()
+            if session and hasattr(session, "access_token"):
+                return bool(session.access_token)
             return False
-
-        session = getattr(session_response, "session", None)
-        if not session:
+        except Exception:
             return False
-
-        return bool(getattr(session, "access_token", None))
