@@ -748,6 +748,21 @@ def main():
     if not auth.is_authenticated():
         render_login()
         return
+    
+    # デバッグ情報
+    with st.expander("🔧 認証デバッグ情報"):
+        user = auth.get_user()
+        session = auth.get_session()
+        
+        st.write("**User:**", user)
+        st.write("**User type:**", type(user))
+        st.write("**Session:**", session)
+        st.write("**Session type:**", type(session))
+        
+        if user:
+            st.write("**User attributes:**", dir(user))
+        if session:
+            st.write("**Session attributes:**", dir(session))
 
    # ------------------------------
     # ユーザー取得（★修正）
