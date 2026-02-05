@@ -341,18 +341,18 @@ def render_settings(user_id):
     st.markdown("### 実行する時間を決める")
     with st.expander("💡 タイミングのコツを見る", expanded=False):
         st.markdown("""
-**効果的なタイミングの選び方:**
+            **効果的なタイミングの選び方:**
 
-- **既存の習慣の前後** につなげると続きやすい
-- **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
-- **毎日同じ時間** にすると定着しやすい
+            - **既存の習慣の前後** につなげると続きやすい
+            - **ダラダラ時間を避ける** - 寝転がってスマホを見ている時は避けよう
+            - **毎日同じ時間** にすると定着しやすい
 
-**タイミングの例:**
-- お風呂に入る前後
-- 食事の前後
-- 寝る前
-- 起きてすぐ
-        """)
+            **タイミングの例:**
+            - お風呂に入る前後
+            - 食事の前後
+            - 寝る前
+            - 起きてすぐ
+                    """)
     
     t = TIME_INPUT_DEFAULT
     if habit and habit.get("target_time"):
@@ -554,7 +554,7 @@ def render_challenge(user_id):
     
     c1, c2, c3 = st.columns(3)
     c1.metric("🔥 継続記録", f"{count}日")
-    c2.metric("📅 最終記録日", last_date if last_date else "---")
+    c2.metric("📅 最終記録日", last_date or "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
     
     # マイルストーンメッセージの表示
