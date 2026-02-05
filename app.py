@@ -628,14 +628,7 @@ def render_challenge(user_id):
         )
     
     with col2:
-        # デバッグ用
-        print(f"[DEBUG] last_date value: {last_date}, type: {type(last_date)}", file=sys.stderr)
-
-        # 最終記録日の表示（より厳密なチェック）
-        if last_date and last_date.strip():  # 空白文字のみの場合も考慮
-            display_date = last_date
-        else:
-            display_date = "---"
+        display_date = last_date if (last_date is not None and last_date != "") else "---"
         st.metric("📅 最終記録日", display_date)
     
     with col3:
