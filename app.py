@@ -745,66 +745,45 @@ def render_history(user_id):
 # Main
 # ------------------------------
 def main():
+    # 認証チェック
     if not auth.is_authenticated():
         render_login()
         return
-    
-    # デバッグ情報
-    with st.expander("🔧 認証デバッグ情報"):
-        user = auth.get_user()
-        session = auth.get_session()
+
+    # ------------------------------
+    # セッションとユーザー情報を取得
+    # ------------------------------
+    try:
+        # セッション取得
+        session = supabase.auth.get_session()
         
-        st.write("**User:**", user)
-        st.write("**User type:**", type(user))
-        st.write("**Session:**", session)
-        st.write("**Session type:**", type(session))
-        
-        if user:
-            st.write("**User attributes:**", dir(user))
-        if session:
-            st.write("**Session attributes:**", dir(session))
-
-   # ------------------------------
-    # ユーザー取得（★修正）
-    # ------------------------------
-    user = auth.get_user()
-
-    if not user or not hasattr(user, "id"):
-        st.warning("セッションが無効です。再度ログインしてください。")
-        auth.logout()
-        st.rerun()
-        return
-
-    user_id = user.id
-
-    # ------------------------------
-    # セッション取得
-    # ------------------------------
-    session = auth.get_session()
-
-    if not session or not hasattr(session, "access_token"):
-        st.warning("セッション情報が取得できません。再度ログインしてください。")
-        auth.logout()
-        st.rerun()
-        return
-
-    # ------------------------------
-    # セッション有効期限チェック
-    # ------------------------------
-    import time
-    if hasattr(session, "expires_at") and session.expires_at:
-        # expires_at は通常 Unix タイムスタンプ（秒）
-        if session.expires_at < time.time():
-            st.warning("セッションが期限切れです。再度ログインしてください。")
+        if not session:
+            st.warning("セッション情報が取得できません。再度ログインしてください。")
             auth.logout()
             st.rerun()
             return
         
-    # ------------------------------
-    # Supabase に access_token 設定
-    # ------------------------------
-    if session.access_token:
-        supabase.postgrest.auth(session.access_token)
+        # ユーザー取得
+        user = supabase.auth.get_user()
+        
+        if not user or not hasattr(user, 'id'):
+            st.warning("ユーザー情報が取得できません。再度ログインしてください。")
+            auth.logout()
+            st.rerun()
+            return
+        
+        user_id = user.id
+        
+        # access_token を設定（必要に応じて）
+        if hasattr(session, 'access_token') and session.access_token:
+            supabase.postgrest.auth(session.access_token)
+    
+    except Exception as e:
+        st.error(f"認証エラー: {e}")
+        st.warning("再度ログインしてください。")
+        auth.logout()
+        st.rerun()
+        return
 
     # ------------------------------
     # 初期ページ判定
@@ -902,7 +881,6 @@ def main():
         render_challenge(user_id)
     elif st.session_state.page == "history":
         render_history(user_id)
-
-
+        
 if __name__ == "__main__":
     main()
