@@ -239,9 +239,10 @@ def render_progress_chart(logs, max_days=30):
     
     df = pd.DataFrame(logs)
     df.index = range(1, len(df) + 1)
-
+    df["completion_time"] = df["completion_hour"].apply(HabitTracker.hour_to_hhmm)
+    
     with st.expander("1クリックごとの達成時間", expanded=False):
-        st.write(df[["log_date", "completion_hour"]])
+        st.write(df[["log_date", "completion_time"]])
         
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
@@ -249,9 +250,15 @@ def render_progress_chart(logs, max_days=30):
     # 平均時間を計算
     avg_hour = statistics.mean(df["completion_hour"])
     
+    # 時分に変換 
+    total_minutes = round(avg_hour * 60) 
+    avg_h = total_minutes // 60 
+    avg_m = total_minutes % 60 
+    avg_time_str = f"{avg_h:02d}:{avg_m:02d}"
+    
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("📈 平均達成時間", f"{avg_hour:.1f}時", help="習慣を実行した平均時刻")
+        st.metric("📈 平均達成時間", f"{avg_time_str:.1f}時", help="習慣を実行した平均時刻")
     with col2:
         st.metric("📅 記録日数", f"{len(df)}日", help="これまでに記録した日数")
     
@@ -310,7 +317,7 @@ def render_settings(user_id):
     name = st.text_input(
         "習慣の内容",
         value=habit.get("name", "") if habit else "",
-        placeholder="できるだけシンプルで具体的な習慣にしましょう！",
+        placeholder="５分でできるシンプルな習慣にしましょう！",
         max_chars=100 # 最大文字数制限
     )
     
@@ -788,7 +795,7 @@ def main():
         )
         
         page_options = ["challenge", "history"]
-        page_labels = {"challenge": "**習慣クリック画面**", "history": "**履歴画面**"}
+        page_labels = {"challenge": "**記録画面**", "history": "**履歴画面**"}
         current_index = page_options.index(st.session_state.page) if st.session_state.page in page_options else 0
         
         page = st.sidebar.radio(
