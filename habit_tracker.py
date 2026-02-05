@@ -11,18 +11,26 @@ class HabitTracker:
         return self.data_manager.load_click_logs(user_id)
     
     def get_click_status(self, logs: list):
-        """現在のクリック状況（連続日数、最新日）を取得する"""
         if not logs:
             return 0, None
 
-        last_click_date = logs[0].get("log_date")
+        # 日付として正しいログだけに絞る
+        valid_logs = [
+            l for l in logs
+            if l.get("log_date") and str(l["log_date"]).strip()
+        ]
 
-        # 空・None・空白対策
-        if not last_click_date or str(last_click_date).strip() == "":
+        if not valid_logs:
             return 0, None
 
-        # ログを日付順にソート（新しい順）
-        sorted_logs = sorted(logs, key=lambda x: x["log_date"], reverse=True)
+        # 最新順にソート（ここだけで責任を持つ）
+        sorted_logs = sorted(
+            valid_logs,
+            key=lambda x: datetime.datetime.strptime(x["log_date"], DATE_FORMAT),
+            reverse=True
+        )
+
+        last_click_date = sorted_logs[0]["log_date"]
 
         consecutive_count = 0
         expected_date = datetime.datetime.strptime(
@@ -41,6 +49,7 @@ class HabitTracker:
                 break
 
         return consecutive_count, last_click_date
+
 
     
     def is_completed(self, count: int) -> bool:
