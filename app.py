@@ -172,7 +172,7 @@ def render_login():
         st.write("")
         st.write("")
         
-        tab1, tab2 = st.tabs(["ログイン", "新規登録"])
+        tab1 = st.tabs(["ログイン"])
         
         with tab1:
             email = st.text_input("メールアドレス", key="login_email")
@@ -189,23 +189,23 @@ def render_login():
                 except Exception as e:
                     st.error(f"メールアドレスまたはパスワードが間違っています")
         
-        with tab2:
-            email = st.text_input("メールアドレス", key="signup_email")
-            password = st.text_input("パスワード（6文字以上）", type="password", key="signup_password")
+        # with tab2:
+        #     email = st.text_input("メールアドレス", key="signup_email")
+        #     password = st.text_input("パスワード（6文字以上）", type="password", key="signup_password")
             
-            if st.button("新規登録", use_container_width=True, type="primary",help="一般ユーザーに権限がないため登録できない"):
-                if not email or not password:
-                    st.error("メールアドレスとパスワードを入力してください")
-                    return
-                if len(password) < 6:
-                    st.error("パスワードは6文字以上で設定してください")
-                    return
-                try:
-                    auth.signup(email, password)
-                    st.success("登録成功！ログインしてください")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"パスワードの形式が正しくありません。英小文字・英大文字・数字・記号をそれぞれ1文字以上含めてください。")
+        #     if st.button("新規登録", use_container_width=True, type="primary",help="一般ユーザーに権限がないため登録できない"):
+        #         if not email or not password:
+        #             st.error("メールアドレスとパスワードを入力してください")
+        #             return
+        #         if len(password) < 6:
+        #             st.error("パスワードは6文字以上で設定してください")
+        #             return
+        #         try:
+        #             auth.signup(email, password)
+        #             st.success("登録成功！ログインしてください")
+        #             st.rerun()
+        #         except Exception as e:
+        #             st.error(f"パスワードの形式が正しくありません。英小文字・英大文字・数字・記号をそれぞれ1文字以上含めてください。")
 
 # ------------------------------
 # 共通UI
