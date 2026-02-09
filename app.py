@@ -172,7 +172,7 @@ def render_login():
         st.write("")
         st.write("")
         
-        tab1 = st.tabs(["ログイン"])
+        tab1, = st.tabs(["ログイン"])
         
         with tab1:
             email = st.text_input("メールアドレス", key="login_email")
