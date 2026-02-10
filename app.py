@@ -642,8 +642,29 @@ def render_challenge(user_id):
                 pass
         
         st.markdown("""
-        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%); 
-                    border-radius: 20px; color: white; box-shadow: 0 12px 32px rgba(245, 158, 11, 0.5);'>
+            <style>
+            /* 30日達成時だけの祝福ボタン */
+            .celebrate-button button {
+            background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%) !important;
+            color: white !important;
+            font-weight: 700;
+            border-radius: 14px;
+            padding: 0.9rem 1.5rem;
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45);
+            transition: all 0.25s ease;
+            }
+
+            .celebrate-button button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(245, 158, 11, 0.65);
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+        
+        st.markdown("""
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%); 
+                    border-radius: 20px; color: white; box-shadow: 0 12px 32px rgba(56, 189, 248, 0.5);'>
             <h1 style='color: white;'>🏆 達成しました！！</h1>
             <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
