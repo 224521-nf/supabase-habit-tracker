@@ -642,8 +642,8 @@ def render_challenge(user_id):
                 pass
         
         st.markdown("""
-        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #22C55E 0%, #15803D 100%); 
-                    border-radius: 20px; color: white; box-shadow: 0 12px 32px rgba(34, 197, 94, 0.5);'>
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%); 
+                    border-radius: 20px; color: white; box-shadow: 0 12px 32px rgba(245, 158, 11, 0.5);'>
             <h1 style='color: white;'>🏆 達成しました！！</h1>
             <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
