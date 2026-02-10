@@ -635,7 +635,7 @@ def render_challenge(user_id):
             try:
                 send_line_notification_to_user(
                     supabase,
-                    f"🏆 30日完全達成おめでとう！🏆\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
+                    f"🏆 30日完全達成おめでとう！\n\n「{habit['name']}」を30日間継続しました！\n\nあなたは素晴らしい！次の習慣にもチャレンジしましょう！",
                     user_id
                 )
             except:
