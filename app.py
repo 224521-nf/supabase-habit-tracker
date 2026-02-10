@@ -577,7 +577,11 @@ def render_challenge(user_id):
     
     c1, c2, c3 = st.columns(3)
     c1.metric("🔥 継続記録", f"{count}日")
-    c2.metric("📅 最終記録日", last_date if last_date else "---")
+    #最終記録日の表示(None,空文字列,空白の場合---を表示)
+    display = "---"
+    if last_date and str(last_date).strip():
+        display_date = last_date
+    c2.metric("📅 最終記録日", display_date)
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
     
     # マイルストーンメッセージの表示(ブルー系グラデーション)
