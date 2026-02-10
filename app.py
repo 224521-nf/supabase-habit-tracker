@@ -583,13 +583,30 @@ def render_challenge(user_id):
     #     st.write(f"logs: {logs}")
     
     c1, c2, c3 = st.columns(3)
-    c1.metric("🔥 継続記録", f"{count}日")
-    if last_date is not None and str(last_date).strip():
-        c2.metric("📅 最終記録日", str(last_date))
-    else:
-        c2.metric("📅 最終記録日", "---")
-    # c2.metric("📅 最終記録日", last_date if (last_date and str(last_date).strip()) else "---")
-    c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
+    
+    # 継続記録
+    with c1:
+        st.markdown("🔥 **継続記録**")
+        st.markdown(f"<h2 style='margin: 0;'>{count}日</h2>", unsafe_allow_html=True)
+    
+    # 最終記録日
+    with c2:
+        st.markdown("📅 **最終記録日**")
+        display_date = "---" if (last_date is None or str(last_date).strip() == "") else str(last_date)
+        st.markdown(f"<h2 style='margin: 0;'>{display_date}</h2>", unsafe_allow_html=True)
+    
+    # 残り
+    with c3:
+        st.markdown("🎯 **残り**")
+        st.markdown(f"<h2 style='margin: 0;'>{MAX_CHALLENGE_DAYS - count}日</h2>", unsafe_allow_html=True)
+    
+    # c1.metric("🔥 継続記録", f"{count}日")
+    # if last_date is not None and str(last_date).strip():
+    #     c2.metric("📅 最終記録日", str(last_date))
+    # else:
+    #     c2.metric("📅 最終記録日", "---")
+    # # c2.metric("📅 最終記録日", last_date if (last_date and str(last_date).strip()) else "---")
+    # c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
     
     # マイルストーンメッセージの表示(ブルー系グラデーション)
     if st.session_state.milestone_message:
