@@ -575,6 +575,13 @@ def render_challenge(user_id):
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
     st.write("")
     
+    # デバッグ情報（一時的に追加）
+    with st.expander("🔧 デバッグ情報", expanded=False):
+        st.write(f"count: {count}")
+        st.write(f"last_date: {repr(last_date)}")
+        st.write(f"last_date type: {type(last_date)}")
+        st.write(f"logs: {logs}")
+    
     c1, c2, c3 = st.columns(3)
     c1.metric("🔥 継続記録", f"{count}日")
     c2.metric("📅 最終記録日", last_date if (last_date and str(last_date).strip()) else "---")
