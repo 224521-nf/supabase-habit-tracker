@@ -300,7 +300,7 @@ def render_progress_chart(logs, max_days=30):
     
     # ブルー系のグラデーションカラー
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
-            color="#3B82F6", linewidth=2.5, markersize=8)
+            color="#F63B3B", linewidth=2.5, markersize=8)
     
     yticks = range(0, 25, 2)
     ax.set_ylim(-1, 24)
