@@ -273,8 +273,8 @@ def render_progress_chart(logs, max_days=30):
     df.index = range(1, len(df) + 1)
     df["completion_time"] = df["completion_hour"].apply(HabitTracker.hour_to_hhmm)
     
-    with st.expander("1クリックごとの達成時間", expanded=False):
-        st.write(df[["log_date", "completion_time"]])
+    # with st.expander("1クリックごとの達成時間", expanded=False):
+    #     st.write(df[["log_date", "completion_time"]])
     
     df["log_date"] = pd.to_datetime(df["log_date"])
     df = df.sort_values(by="log_date").tail(max_days)
@@ -300,7 +300,7 @@ def render_progress_chart(logs, max_days=30):
     
     # ブルー系のグラデーションカラー
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
-            color="#3B82F6", linewidth=2.5, markersize=8)
+            color="#F63B48", linewidth=2.5, markersize=8)
     
     yticks = range(0, 25, 2)
     ax.set_ylim(-1, 24)
