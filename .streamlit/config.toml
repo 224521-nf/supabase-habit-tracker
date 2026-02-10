@@ -1,10 +1,10 @@
 [server]
-enableCORS = true 
+enableCORS = true
 port = 8501
 runOnSave = true
 
 [theme]
-base = "light"
 backgroundColor = "#F7F7F7"
-primaryColor = "#FA9D9D"
+base = "light"
+primaryColor = "#3B82F6"
 textColor = "#1C1C1C"
