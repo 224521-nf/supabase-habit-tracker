@@ -24,7 +24,7 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
         if not re.match(uuid_pattern, user_id, re.IGNORECASE):
             return False
         
-        # メッセージの長さ制限（DoS対策）
+        # メッセージの長さ制限(DoS対策)
         if len(message) > 1000:
             message = message[:1000] + "..."
         
@@ -69,7 +69,7 @@ def send_line_notification_to_user(supabase: Client, message: str, user_id: str)
 # LINE設定UI
 # ------------------------------
 def render_line_settings(user_id, supabase):
-    """LINE通知設定UI（個人利用・登録済み前提）"""
+    """LINE通知設定UI(個人利用・登録済み前提)"""
     try:
         result = (
             supabase
@@ -115,28 +115,83 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# カスタムCSS
+# ==============================
+# カスタムCSS(統一配色版)
+# ==============================
 st.markdown("""
 <style>
-/* プログレスバーのスタイル */
+:root {
+  --primary: #3B82F6;
+  --primary-dark: #1E40AF;
+  --success: #22C55E;
+  --success-dark: #15803D;
+  --warning: #EF4444;
+  --card-bg: #FFFFFF;
+  --muted: #6B7280;
+  --bg-light: #F3F4F6;
+}
+
+/* プログレスバー */
 .stProgress > div > div > div > div {
-    background-color: #ff4b4b;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
 }
 
-/* ボタンの改善 */
+/* ボタン */
 .stButton > button {
-    font-size: 1.1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
+  font-size: 1.05rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  transition: all 0.3s ease;
 }
 
-/* カード風のスタイル */
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+}
+
+.stButton > button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* カード */
 .card {
-    padding: 1.5rem;
-    border-radius: 10px;
-    background-color: #f0f2f6;
-    margin: 1rem 0;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background-color: var(--card-bg);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  margin: 1.2rem 0;
+}
+
+/* 成功メッセージ */
+.success-box {
+  background: linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(21,128,61,0.1) 100%);
+  border-left: 6px solid var(--success);
+  padding: 1.2rem;
+  border-radius: 10px;
+}
+
+/* 警告メッセージ */
+.warning-box {
+  background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(185,28,28,0.1) 100%);
+  border-left: 6px solid var(--warning);
+  padding: 1.2rem;
+  border-radius: 10px;
+}
+
+/* メトリクス */
+.stMetric {
+  background-color: var(--bg-light);
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+/* 補助テキスト */
+.muted {
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -188,24 +243,6 @@ def render_login():
                     st.rerun()
                 except Exception as e:
                     st.error(f"メールアドレスまたはパスワードが間違っています")
-        
-        # with tab2:
-        #     email = st.text_input("メールアドレス", key="signup_email")
-        #     password = st.text_input("パスワード（6文字以上）", type="password", key="signup_password")
-            
-        #     if st.button("新規登録", use_container_width=True, type="primary",help="一般ユーザーに権限がないため登録できない"):
-        #         if not email or not password:
-        #             st.error("メールアドレスとパスワードを入力してください")
-        #             return
-        #         if len(password) < 6:
-        #             st.error("パスワードは6文字以上で設定してください")
-        #             return
-        #         try:
-        #             auth.signup(email, password)
-        #             st.success("登録成功！ログインしてください")
-        #             st.rerun()
-        #         except Exception as e:
-        #             st.error(f"パスワードの形式が正しくありません。英小文字・英大文字・数字・記号をそれぞれ1文字以上含めてください。")
 
 # ------------------------------
 # 共通UI
@@ -261,8 +298,9 @@ def render_progress_chart(logs, max_days=30):
     # 達成回数を計算
     df['count'] = range(1, len(df) + 1)
     
+    # ブルー系のグラデーションカラー
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
-            color="#ff4b4b", linewidth=2.5, markersize=8)
+            color="#3B82F6", linewidth=2.5, markersize=8)
     
     yticks = range(0, 25, 2)
     ax.set_ylim(-1, 24)
@@ -286,7 +324,7 @@ def render_progress_chart(logs, max_days=30):
 # Pages
 # ------------------------------
 def render_settings(user_id):
-    """習慣を設定するページ（改善版）"""
+    """習慣を設定するページ(改善版)"""
     # ヘッダー
     st.markdown("<h1 style='text-align: center;'>🎯 新しい習慣を始めよう</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #666; font-size: 1.4rem;'>30日間、一つの習慣に集中して人生を変えましょう</p>", unsafe_allow_html=True)
@@ -425,18 +463,18 @@ def render_challenge(user_id):
     count, last_date = tracker.get_click_status(logs)
     today_obj = datetime.date.today()
     
-    # Session Stateの初期化（最初に移動）
+    # Session Stateの初期化(最初に移動)
     if 'milestone_message' not in st.session_state:
         st.session_state.milestone_message = None
     if 'balloons_triggered' not in st.session_state:
         st.session_state.balloons_triggered = False
     
     # ========================================
-    # 最優先: リセット判定（厳格モード）
+    # 最優先: リセット判定(厳格モード)
     # ========================================
     should_show_reset = False
     
-    # ログを日付順（新しい順）に並べる
+    # ログを日付順(新しい順)に並べる
     sorted_logs = sorted(
         logs,
         key=lambda x: datetime.datetime.strptime(x['log_date'], DATE_FORMAT).date(),
@@ -483,6 +521,7 @@ def render_challenge(user_id):
         st.write("")
         st.write("")
         
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -526,27 +565,11 @@ def render_challenge(user_id):
         return
     
     # ========================================
-    # メイン画面（ここから下はリセット不要な時のみ）
+    # メイン画面(ここから下はリセット不要な時のみ)
     # ========================================
     st.markdown(f"<h1 style='text-align: center;'>🎯 {safe_habit_name}</h1>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align: center;'> 目標時間: {safe_target_time}</h3>", unsafe_allow_html=True)
     st.write("")
-    
-    # # デバッグ情報
-    # with st.expander("🔧 開発者用デバッグ情報", expanded=False):
-    #     st.write(f"判定: {'リセット対象' if should_show_reset else '継続中'}")
-    #     st.write(f"連続日数: {count}")
-    #     st.write(f"全ログ: {logs}")
-        
-    #     if st.button("🧪 テスト: 今日のログを残しつつ、前回の記録を3日前にする"):
-    #         has_today = any(l['log_date'] == today_obj.strftime(DATE_FORMAT) for l in logs)
-    #         tracker.reset_logs(user_id)
-    #         time.sleep(0.5)
-    #         three_days_ago = (today_obj - datetime.timedelta(days=3)).strftime(DATE_FORMAT)
-    #         dm.save_click_log(user_id, three_days_ago, 12)
-    #         if has_today:
-    #             dm.save_click_log(user_id, today_obj.strftime(DATE_FORMAT), 12)
-    #         st.rerun()
     
     # 進捗表示
     render_progress_bar(count, MAX_CHALLENGE_DAYS)
@@ -557,15 +580,15 @@ def render_challenge(user_id):
     c2.metric("📅 最終記録日", last_date if last_date else "---")
     c3.metric("🎯 残り", f"{MAX_CHALLENGE_DAYS - count}日")
     
-    # マイルストーンメッセージの表示
+    # マイルストーンメッセージの表示(ブルー系グラデーション)
     if st.session_state.milestone_message:
         title, message = st.session_state.milestone_message
         # タイトルとメッセージもエスケープ
         safe_title = html.escape(title)
         safe_message = html.escape(message)
         st.markdown(f"""
-        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 15px; color: white; margin: 2rem 0;'>
+        <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); 
+                    border-radius: 15px; color: white; margin: 2rem 0; box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);'>
             <h2 style='color: white; margin: 1rem 0;'>{safe_title}</h2>
             <p style='font-size: 1.2rem; color: #f0f0f0;'>{safe_message}</p>
         </div>
@@ -574,7 +597,7 @@ def render_challenge(user_id):
     
     st.markdown("---")
     
-    # 30日完全達成
+    # 30日完全達成(グリーン系グラデーション)
     if tracker.is_completed(count):
         if not st.session_state.balloons_triggered:
             st.balloons()
@@ -591,8 +614,8 @@ def render_challenge(user_id):
                 pass
         
         st.markdown("""
-        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-                    border-radius: 20px; color: white;'>
+        <div style='text-align: center; padding: 3rem; background: linear-gradient(135deg, #22C55E 0%, #15803D 100%); 
+                    border-radius: 20px; color: white; box-shadow: 0 12px 32px rgba(34, 197, 94, 0.5);'>
             <h1 style='color: white;'>🏆 達成しました！！</h1>
             <p style='font-size: 1.3rem;'>おめでとうございます！素晴らしい！</p>
         </div>
@@ -659,7 +682,7 @@ def render_challenge(user_id):
                 st.rerun()
         return
     
-    # 記録ボタン（以下は変更なし）
+    # 記録ボタン(以下は変更なし)
     elif tracker.can_click_today(last_date):
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -796,7 +819,7 @@ def main():
         
         st.sidebar.markdown("---")
         
-        # 現在の習慣情報（XSS対策）
+        # 現在の習慣情報(XSS対策)
         st.sidebar.markdown("### 現在の習慣")
         safe_habit_name = html.escape(habit['name'])
         safe_target_time = html.escape(habit['target_time'])
