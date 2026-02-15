@@ -882,7 +882,11 @@ def main():
         # 現在の習慣情報(XSS対策)
         st.sidebar.markdown("### 現在の習慣")
         safe_habit_name = html.escape(habit['name'])
-        safe_target_time = html.escape(habit['target_time'])
+        
+        target_time_str = str(habit.get('target_time',''))
+        target_time_formatted = target_time_str[:5] if len(target_time_str) > 5 else target_time_str
+        safe_target_time = html.escape(target_time_formatted)
+        
         st.sidebar.write(f"{safe_habit_name}")
         st.sidebar.write(f"開始時刻 {safe_target_time}")
         st.sidebar.markdown("---")
