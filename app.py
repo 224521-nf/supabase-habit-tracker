@@ -303,7 +303,7 @@ def render_progress_chart(logs, max_days=30):
             color="#F63B3B", linewidth=2.5, markersize=8)
     
     yticks = range(0, 25, 2)
-    ax.set_ylim(-1, 24)
+    ax.set_ylim(-1, 22)
     ax.set_xlim(1, 30)
     ax.set_yticks(yticks)
     ax.set_xticks(range(1, 31))
