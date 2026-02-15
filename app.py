@@ -796,7 +796,11 @@ def render_history(user_id):
         
         # XSS対策: エスケープ
         safe_habit_name = html.escape(r["habit_name"])
-        safe_target_time = html.escape(r["target_time"])
+        #safe_target_time = html.escape(r["target_time"])
+        
+        target_time_str = str(r.get("target_time", ""))
+        target_time_formatted = target_time_str[:5] if len(target_time_str) > 5 else target_time_str
+        safe_target_time = html.escape(target_time_formatted)
         
         with st.expander(f'**{i}. {safe_habit_name} - {archive_date} ({r["total_days"]}日達成)**'):
             st.markdown(f'**⏰ 目標時間:** {safe_target_time}')
