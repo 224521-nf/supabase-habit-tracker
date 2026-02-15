@@ -456,7 +456,18 @@ def render_challenge(user_id):
     
     # XSS対策: HTMLエスケープ
     safe_habit_name = html.escape(habit['name']) if habit.get('name') else ""
-    safe_target_time = html.escape(habit['target_time']) if habit.get('target_time') else ""
+    
+    #目標時間から秒を削除（HH:MM:SS → HH:MM）
+    target_time_raw = habit.get('target_time', '')
+    if target_time_raw and len(str(target_time_raw)) > 5:
+        # HH:MM:SS形式の場合、最初の5文字（HH:MM）だけ取得
+        target_time_formatted = str(target_time_raw)[:5]
+    else:
+        target_time_formatted = str(target_time_raw)
+    
+    #safe_target_time = html.escape(habit['target_time']) if habit.get('target_time') else ""
+    
+    safe_target_time = html.escape(target_time_formatted)
     
     # 2. ログの取得
     logs = tracker.get_logs(user_id)
