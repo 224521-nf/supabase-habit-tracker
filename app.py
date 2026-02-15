@@ -302,8 +302,8 @@ def render_progress_chart(logs, max_days=30):
     ax.plot(df["count"], df["completion_hour"], marker="o", linestyle="-", 
             color="#F63B3B", linewidth=2.5, markersize=8)
     
-    yticks = range(0, 25, 2)
-    ax.set_ylim(-1, 22)
+    yticks = range(0, 24, 2)
+    ax.set_ylim(0, 23.99)
     ax.set_xlim(1, 30)
     ax.set_yticks(yticks)
     ax.set_xticks(range(1, 31))
